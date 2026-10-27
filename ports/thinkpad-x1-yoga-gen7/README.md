@@ -55,7 +55,7 @@ The inventory report lists devices attached during one Linux boot, but it does n
 python3 ports/thinkpad-x1-yoga-gen7/tools/collect-usb-port-map.py --confirm-x1-yoga-gen7
 ```
 
-The user ran the helper with a Western Digital USB device (`1058:25A2`). A 5000 Mbit/s path was observed on both USB-A and both USB-C connectors; earlier captures also observed a 480 Mbit/s path on each connector. Both USB-C ports are user-confirmed to charge the laptop. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. The observations are raw Linux paths, not an OpenCore USB map; USB-C orientation and Thunderbolt/USB4 PCIe topology still need separate checks. Detailed paths are in `EVIDENCE-ANALYSIS.md` and `profile.json`.
+The user ran the helper with a Western Digital USB device (`1058:25A2`). A 5000 Mbit/s path was observed on both USB-A and both USB-C connectors; earlier captures also observed a 480 Mbit/s path on each connector. The WD device used the same observed path in both plug orientations on each USB-C port. Both USB-C ports are user-confirmed to charge the laptop. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. The observations are raw Linux paths, not an OpenCore USB map; Thunderbolt/USB4 PCIe topology still needs separate inspection. Detailed paths are in `EVIDENCE-ANALYSIS.md` and `profile.json`.
 
 ### Prepared firmware evidence exporter
 

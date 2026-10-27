@@ -36,12 +36,12 @@ Two user-run captures on the Yoga observed a 480 Mbit/s path and a 5000 Mbit/s p
 | USB-C-LEFT-BOTTOM | bus 3, `3-1`, PCI `0000:00:14.0` | bus 2, `2-1`, PCI `0000:00:0d.0` |
 | USB-C-LEFT-TOP-CHARGING | bus 3, `3-3`, PCI `0000:00:14.0` | bus 2, `2-3`, PCI `0000:00:0d.0` |
 
-The user separately confirms both USB-C ports charge the laptop. USB-C plug orientation was not recorded. The built-in Bluetooth, fingerprint reader, and Intel USB Bridge appeared at `3-10`, `3-6`, and `3-8` respectively, each at 12 Mbit/s. These Linux paths are evidence for a later map, not an OpenCore USB map. The appearance of USB-C traffic through PCI `0000:00:0d.0` does not establish Thunderbolt/USB4 PCIe topology; that remains uncaptured.
+The user separately confirms both USB-C ports charge the laptop. A follow-up test with the same Western Digital device found the same 5 Gbit/s route in both plug orientations: top port `2-3`, bottom port `2-1`, both through PCI `0000:00:0d.0`. This orientation result is specific to the tested device, cable, and link. The built-in Bluetooth, fingerprint reader, and Intel USB Bridge appeared at `3-10`, `3-6`, and `3-8` respectively, each at 12 Mbit/s. These Linux paths are evidence for a later map, not an OpenCore USB map. The appearance of USB-C traffic through PCI `0000:00:0d.0` does not establish Thunderbolt/USB4 PCIe topology; that remains uncaptured.
 
 ## Safe next work
 
 1. Determine how Linux selected the active panel despite the VBT's EDID-based primary type and missing AUO PnP match; capture the live firmware panel type if it can be obtained safely. Keep the VBT binary private.
 2. Trace `setupOptimalLaneCount()`, register staging, and `hwSetMode()` against the exact patched Tiger Lake driver and NootedGreen call order. In this source revision, `-ngreenkeepefi` gates one display-register staging block, but `hwSetMode()` still separately writes `0x8A000106` on every non-real-TGL path. Do not treat that boot argument as a Yoga two-lane safeguard; design a Yoga-specific, reversible path and capture the Yoga's pre-macOS register state before any hardware test.
 3. Resolve the available-versus-enabled topology reporting and identify what the Tiger Lake driver expects before changing EU/L3 overrides.
-4. Finish Yoga I2C/GPIO resource analysis; verify whether USB-C orientation changes any captured path, derive the OpenCore USB map, and inspect Thunderbolt separately.
+4. Finish Yoga I2C/GPIO resource analysis; derive the OpenCore USB map from the captured paths and inspect Thunderbolt separately.
 5. Only then generate separate recovery and acceleration configurations. No installer, EFI generation, or internal-disk operation is part of this evidence-analysis step.

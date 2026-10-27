@@ -1,12 +1,12 @@
 # ThinkPad X1 Yoga Gen 7 port scaffold
 
-**Status: non-bootable research scaffold. No Yoga EFI, installer, or compatibility result exists yet.** This branch is being developed on the user's separate main PC; none of the target-laptop collection commands have been run in this session.
+**Status: non-bootable research scaffold. No Yoga EFI, installer, or compatibility result exists yet.** This branch is being developed on the user's separate main PC; the user collected Linux inventory and raw ACPI/VBT evidence on the Yoga and returned it by USB; this session reviews it on the separate main PC. Raw firmware dumps stay private and out of Git.
 
 ## Repository audit
 
-The checkout is at revision `99631db20ad841bb5d5f3934e4ffa4dc09f92dee` on branch `yoga-gen7`. At that revision, `main` and `origin/main` pointed to the same commit. The maintained EFI and all confirmed results in this repository target a Dell XPS 13 Plus 9320 with a Raptor Lake i7-1360P.
+The Yoga port branch was started from revision 99631db20ad841bb5d5f3934e4ffa4dc09f92dee and is developed as yoga-gen7, tracking the user's origin/dev. The upstream Dell configuration remains unchanged. The maintained EFI and all confirmed results in this repository target a Dell XPS 13 Plus 9320 with a Raptor Lake i7-1360P.
 
-The XPS EFI is not a Yoga template. It uses SMBIOS `MacBookPro16,2`, GPU spoofing and framebuffer properties, an XPS USB map, XPS I2C ACPI, and Dell-specific power/sensor configuration. In particular, `acpi/SSDT-XPS-I2C.dsl` hard-codes I2C0/TPL0 as touchscreen and I2C1/TPD0 as trackpad; the Yoga's reported Linux enumeration is the opposite device assignment, with different HIDs. The Yoga must get its own ACPI and USB evidence before any EFI is assembled.
+The XPS EFI is not a Yoga template. It uses SMBIOS `MacBookPro16,2`, GPU spoofing and framebuffer properties, an XPS USB map, XPS I2C ACPI, and Dell-specific power/sensor configuration. In particular, `acpi/SSDT-XPS-I2C.dsl` hard-codes I2C0/TPL0 as touchscreen and I2C1/TPD0 as trackpad; target-side evidence confirms I2C0.TPD0 for the SYNA8016 touchpad and I2C1.TPL1 for the WACF2200 pen/touch device. The exact GPIO resources and Yoga USB map still need analysis before any EFI is assembled.
 
 ### Closest graphics evidence
 
@@ -37,8 +37,8 @@ No configuration is generated yet. The existing `config-install.plist` is still 
 
 ## Evidence gates before an EFI
 
-1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, i915 display state, and SSEU topology. The inventory tool is guarded for the Yoga and has not been run on the main PC.
-2. Use the firmware evidence exporter to save raw ACPI tables, VBT, and available i915 display/topology diagnostics to a new folder on an already-mounted USB. Keep raw firmware dumps private and out of Git.
+1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, i915 display state, and SSEU topology. Target-side inventory is complete; the manifest and findings are summarized in EVIDENCE-ANALYSIS.md.
+2. The user has completed the firmware evidence export: 51 files are present and the manifest lists no missing captures. Raw files remain private and out of Git.
 3. Derive the I2C/GPIO interrupts and a USB map from the Yoga itself. Keep the reported storage, Kubuntu EFI/ext4 partitions, and swap outside this porting work.
 4. Build a Yoga recovery config and validate it with the validator matching the actual OpenCore binary version.
 5. Only then make an isolated acceleration config, keep the exact 25G241/16.0.32 build gates, and define a rollback path to the USB recovery config.
@@ -57,11 +57,11 @@ sudo python3 tools/export-linux-evidence.py \
   --output-dir /absolute/path/on/usb/x1yoga-evidence
 ```
 
-It exports raw ACPI tables, the i915 VBT (when available), and i915 display/topology diagnostics. Intel documents the VBT as platform-specific display configuration available from i915 debugfs at `/sys/kernel/debug/dri/<n>/i915_vbt` ([VBT docs](https://drm.pages.freedesktop.org/intel-docs/vbt.html)). The exporter checks Lenovo DMI vendor data and that the destination parent is on a USB-backed mounted filesystem, then anchors writes to that open directory. It does not mount or format the USB. The confirmation flag is an operator check and does not independently prove the exact Yoga model. The manifest records missing/unreadable items. Raw ACPI/VBT data can contain machine-specific firmware details: keep it private and out of Git. This tool has not been run.
+It exports raw ACPI tables, the i915 VBT (when available), and i915 display/topology diagnostics. Intel documents the VBT as platform-specific display configuration available from i915 debugfs at `/sys/kernel/debug/dri/<n>/i915_vbt` ([VBT docs](https://drm.pages.freedesktop.org/intel-docs/vbt.html)). The exporter checks Lenovo DMI vendor data and that the destination parent is on a USB-backed mounted filesystem, then anchors writes to that open directory. It does not mount or format the USB. The confirmation flag is an operator check and does not independently prove the exact Yoga model. The manifest records missing/unreadable items. Raw ACPI/VBT data can contain machine-specific firmware details: keep it private and out of Git. The user ran this on the Yoga; its manifest lists 51 evidence files and no missing captures. The raw export remains on USB and is not committed.
 
 ## Disk and installer boundary
 
-The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and the available 64 GB USB have not been used. No installer, partitioning, formatting, EFI generation, or drive operation has been performed. Any later USB write requires an explicit device identification and approval.
+The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and all internal partitions remain untouched. The 64 GB USB has only carried the private evidence export; no installer, partitioning, formatting, EFI generation, or internal-drive operation has been performed.
 
 ## Change boundary
 

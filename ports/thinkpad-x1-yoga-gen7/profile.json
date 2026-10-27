@@ -7,9 +7,9 @@
     "branch": "yoga-gen7"
   },
   "evidenceProvenance": {
-    "source": "User-provided observations collected from Kubuntu on the ThinkPad",
+    "source": "User-run guarded inventory and evidence exporter on the ThinkPad; exported files reviewed on the main PC",
     "independentCaptureInThisSession": false,
-    "reason": "Development is running on the separate main PC, not on the target laptop",
+    "reason": "Hardware collection ran on the Yoga; source analysis and configuration work run on the separate main PC",
     "privacy": "No serial numbers, UUIDs, MAC addresses, Apple account data, or storage partition identifiers are recorded here"
   },
   "target": {
@@ -57,7 +57,10 @@
       "edidProductIdHex": "D291",
       "edidProductIdDecimal": 53905,
       "edidRevision": "1.4",
-      "resolutionPixels": [1920, 1200],
+      "resolutionPixels": [
+        1920,
+        1200
+      ],
       "preferredRefreshHz": 60.025902,
       "pixelClockMHz": 156.1,
       "horizontalTimingPixels": {
@@ -83,10 +86,13 @@
       "edpDpcdRevision": "0x14",
       "edpPsrSinkSupport": true,
       "edpPsrModeAtCapture": "PSR2 enabled",
-      "vbtCaptured": false,
+      "vbtCaptured": true,
       "vbtAvailableBytes": 9216,
       "vbtSha256": "0d81b67665439cea7eb2ed511ce01e1196dd12b550b0063acf436ed13f231961",
-      "backlightControl": null
+      "backlightControl": null,
+      "activePipe": "A",
+      "activeDdiPhy": "A",
+      "vbtDecodeStatus": "Captured with valid $VBT signature; active panel/link block decode pending"
     },
     "network": {
       "wifi": {
@@ -176,6 +182,32 @@
       "i915DmcFirmware": "i915/adlp_dmc.bin",
       "i915DmcVersion": "2.20",
       "i915DmcLoaded": true
+    },
+    "firmwareEvidence": {
+      "exportManifestFileCount": 51,
+      "exportManifestMissingCount": 0,
+      "dsdtOemId": "LENOVO",
+      "dsdtOemTableId": "ICL",
+      "rawTablesCommitted": false,
+      "devicePaths": {
+        "graphics": {
+          "acpiPath": "\\_SB.PC00.GFX0",
+          "adr": "0x00020000"
+        },
+        "touchpad": {
+          "acpiPath": "\\_SB.PC00.I2C0.TPD0",
+          "compatibleId": "PNP0C50",
+          "hid": "06CB:CEB3",
+          "i2cAddress": "0x2C"
+        },
+        "touchscreenAndPen": {
+          "acpiPath": "\\_SB.PC00.I2C1.TPL1",
+          "compatibleId": "PNP0C50",
+          "hid": "056A:5308",
+          "i2cAddress": "0x0A"
+        }
+      },
+      "staticAnalysisNote": "ACPI paths and device IDs were read from captured DSDT/SSDT AML; firmware-derived GPIO and interrupt resources are not yet validated for macOS."
     }
   },
   "graphicsReferenceReport": {
@@ -199,9 +231,9 @@
     "note": "This is the checkout's patch baseline, not a claim that the Yoga is supported."
   },
   "unknowns": [
-    "Raw DSDT/SSDT contents and I2C GPIO resource/interrupt details",
-    "Raw VBT contents and decoded panel/backlight configuration",
-    "Active GPU render topology and L3 bank count; i915 reports 96 available EUs across six subslices, but the enabled-status snapshot was all zero",
+    "Active/fused GPU topology and L3 bank count; available topology and the all-zero enabled-status snapshot are distinct observations",
+    "Decoded active Yoga VBT panel/link/backlight configuration",
+    "Yoga I2C GPIO interrupt routing and macOS-compatible ACPI resources",
     "Exact USB port map and Thunderbolt topology",
     "Successful macOS boot on this Yoga",
     "Metal acceleration or stability on this Yoga",

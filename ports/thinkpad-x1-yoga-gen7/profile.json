@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 2,
+  "status": "inventory-only",
+  "bootable": false,
+  "sourceRepository": {
+    "revision": "99631db20ad841bb5d5f3934e4ffa4dc09f92dee",
+    "branch": "yoga-gen7"
+  },
+  "evidenceProvenance": {
+    "source": "User-provided observations collected from Kubuntu on the ThinkPad",
+    "independentCaptureInThisSession": false,
+    "reason": "Development is running on the separate main PC, not on the target laptop",
+    "privacy": "No serial numbers, UUIDs, MAC addresses, Apple account data, or storage partition identifiers are recorded here"
+  },
+  "target": {
+    "manufacturer": "Lenovo",
+    "model": "ThinkPad X1 Yoga Gen 7",
+    "machineType": null,
+    "biosVersion": null,
+    "bootMode": "UEFI",
+    "memoryGiB": 32,
+    "cpu": {
+      "model": "Intel Core i7-1265U",
+      "architecture": "Alder Lake-U",
+      "performanceCores": 2,
+      "efficiencyCores": 8,
+      "physicalCores": 10,
+      "logicalProcessorsReported": 12
+    },
+    "graphics": {
+      "name": "Intel Iris Xe Graphics",
+      "architecture": "Alder Lake-UP3 GT2 / Xe-LP Gen12",
+      "pciAddress": "0000:00:02.0",
+      "pciId": "8086:46A8",
+      "revision": "0C",
+      "nominalExecutionUnits": 96,
+      "activeExecutionUnits": null,
+      "activeSubsliceMask": null,
+      "l3BankCount": null,
+      "evidenceNote": "The nominal configuration and PCI ID are user-reported. Active fuses and cache topology for this Yoga are not yet captured."
+    },
+    "display": {
+      "connector": "card1-eDP-1",
+      "link": "eDP",
+      "panel": "AU Optronics B140UAN02.1",
+      "edidManufacturer": "AUO",
+      "edidProductIdHex": "D291",
+      "edidProductIdDecimal": 53905,
+      "edidRevision": "1.4",
+      "resolutionPixels": [1920, 1200],
+      "preferredRefreshHz": 60.025902,
+      "pixelClockMHz": 156.1,
+      "horizontalTimingPixels": {
+        "active": 1920,
+        "frontPorch": 16,
+        "syncWidth": 16,
+        "backPorch": 152,
+        "syncPolarity": "negative"
+      },
+      "verticalTimingLines": {
+        "active": 1200,
+        "frontPorch": 3,
+        "syncWidth": 14,
+        "backPorch": 19,
+        "syncPolarity": "negative"
+      },
+      "edidInterfaceDeclaration": "DisplayPort",
+      "edidHex": "00ffffffffffff0006af91d200000000161e0104a51e137803d7f2a7554a9c220d515600000001010101010101010101010101010101fa3c80b870b0244010103e002dbc10000018000000fd00303c4b4b10010a202020202020000000fe0041554f0a202020202020202020000000fe004231343055414e30322e31200a00e7",
+      "edpLaneCount": null,
+      "edpLinkRate": null,
+      "vbtCaptured": false,
+      "backlightControl": null
+    },
+    "network": {
+      "wifi": {
+        "model": "Intel AX211",
+        "pciId": "8086:51F0",
+        "revision": "01"
+      },
+      "ethernetPort": false,
+      "recoveryWifiVerified": false
+    },
+    "bluetooth": {
+      "model": "Intel AX211 Bluetooth",
+      "usbId": "8087:0033"
+    },
+    "audio": {
+      "hdaController": {
+        "name": "Intel Alder Lake PCH-P High Definition Audio",
+        "pciId": "8086:51C8",
+        "revision": "01"
+      },
+      "analogCodec": {
+        "name": "Realtek ALC287",
+        "vendorId": "10EC0287",
+        "subsystemId": "17AA22E6"
+      },
+      "hdmiCodec": {
+        "name": "Intel Alder Lake-P HDMI",
+        "vendorId": "8086281C",
+        "subsystemId": "80860101"
+      }
+    },
+    "camera": {
+      "controller": "Intel IPU6",
+      "pciId": "8086:465D",
+      "revision": "04",
+      "linuxStatus": "Works with the user's custom Kubuntu fix",
+      "macOSStatus": "unknown"
+    },
+    "i2cHid": [
+      {
+        "role": "touchpad",
+        "device": "SYNA8016:00",
+        "compatibleId": "PNP0C50",
+        "hidId": "06CB:CEB3",
+        "controllerPciAddress": "0000:00:15.0",
+        "controllerPciId": "8086:51E8",
+        "linuxI2cBus": "i2c-0"
+      },
+      {
+        "role": "touchscreen-and-pen",
+        "device": "WACF2200:00",
+        "compatibleId": "PNP0C50",
+        "hidId": "056A:5308",
+        "controllerPciAddress": "0000:00:15.1",
+        "controllerPciId": "8086:51E9",
+        "linuxI2cBus": "i2c-1"
+      }
+    ],
+    "otherInputs": [
+      "AT Translated Set 2 keyboard",
+      "TPPS/2 Elan TrackPoint",
+      "Intel HID events",
+      "ThinkPad Extra Buttons",
+      "Lid switch",
+      "Power button"
+    ],
+    "otherUsbDevices": [
+      {
+        "device": "Synaptics Prometheus fingerprint reader",
+        "usbId": "06CB:00FC",
+        "macOSStatus": "no native Touch ID support established"
+      },
+      {
+        "device": "Intel USB Bridge",
+        "usbId": "8086:0B63",
+        "purpose": "unknown"
+      }
+    ],
+    "usbPortMapCaptured": false,
+    "thunderboltTopologyCaptured": false,
+    "linux": {
+      "distribution": "Kubuntu",
+      "release": null,
+      "kernel": null,
+      "status": "Kubuntu boots and works",
+      "suspendStatus": "unreliable"
+    }
+  },
+  "graphicsReferenceReport": {
+    "machine": "Dell Latitude 7430",
+    "cpu": "Intel Core i7-1265U",
+    "gpuPciId": "8086:46A8",
+    "gpuSpoofId": "8086:9A49",
+    "reportedActiveExecutionUnits": 96,
+    "macOS": "Tahoe 26.7.1",
+    "macOSBuild": "25G241",
+    "reportedMetal": "Metal 2",
+    "panel": "1920x1080 LG Display eDP",
+    "resultScope": "Community report; NootedGreen v2 testing reported no prior GPU hangs across multiple graphics triggers, but scaled-mode and scaled-image display artifacts remained.",
+    "source": "https://github.com/JulioNectar/Hackintosh-XPS13Plus-IrisXe-Tahoe/issues/2",
+    "appliesToYoga": false
+  },
+  "repositoryGraphicsPatchBaseline": {
+    "macOS": "Tahoe 26.7.1",
+    "macOSBuild": "25G241",
+    "appleTigerLakeGraphicsBundle": "16.0.32",
+    "note": "This is the checkout's patch baseline, not a claim that the Yoga is supported."
+  },
+  "unknowns": [
+    "Machine type and BIOS version",
+    "Full DSDT and SSDT tables",
+    "VBT and exact eDP link configuration",
+    "Active GPU EU/subslice fuse topology and L3 bank count",
+    "Exact USB port map and Thunderbolt topology",
+    "Successful macOS boot on this Yoga",
+    "Metal acceleration or stability on this Yoga",
+    "Suitable Xcode version and Simulator compatibility"
+  ]
+}

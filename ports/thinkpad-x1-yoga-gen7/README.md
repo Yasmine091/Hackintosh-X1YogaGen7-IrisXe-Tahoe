@@ -47,6 +47,16 @@ No configuration is generated yet. The existing `config-install.plist` is still 
 
 `tools/collect-linux-inventory.py` reads selected `/proc`, `/sys`, and i915 debugfs entries and prints a report to stdout by default. It includes available `i915_display_info`, `i915_sseu_status`, DMC and eDP power-save diagnostics, plus VBT size/signature/hash. It omits storage devices and partition tables, DMI serials/UUIDs, MAC addresses, and USB serial fields. It does not invoke sudo, install packages, mount filesystems, or change settings. From Kubuntu on the Yoga, start with `python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`; if i915 debugfs entries say unreadable, rerun as `sudo python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`. It also checks that DMI says Lenovo. The default prints to the terminal and writes nothing. The optional `--output PATH` is not needed for sharing; if used, choose a removable-USB path. This tool has not been run on the main PC.
 
+### Next target-side capture: physical USB ports
+
+The inventory report lists devices attached during one Linux boot, but it does not map each external connector. Do not reuse the XPS USB map. On the Yoga, unplug the test device and run this from the repository root:
+
+```sh
+python3 ports/thinkpad-x1-yoga-gen7/tools/collect-usb-port-map.py --confirm-x1-yoga-gen7
+```
+
+Insert one known USB device into one connector at a time and enter its physical label when prompted; repeat for every USB-A/USB-C connector and, if available, a USB 2 and USB 3 device. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. Share the `MAP` lines. This is raw Linux port-path evidence, not yet an OpenCore USB map; Thunderbolt PCIe topology needs a separate check.
+
 ### Prepared firmware evidence exporter
 
 `tools/export-linux-evidence.py` is for the Yoga running Kubuntu only. After mounting the external USB yourself, run it with `--confirm-x1-yoga-gen7` and an absolute path to a new folder on that USB, for example:

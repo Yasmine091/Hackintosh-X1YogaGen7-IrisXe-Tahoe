@@ -28,7 +28,7 @@ The devices use PNP0C50. The firmware's _INI and _CRS methods populate HID and G
 ## Safe next work
 
 1. Determine how Linux selected the active panel despite the VBT's EDID-based primary type and missing AUO PnP match; capture the live firmware panel type if it can be obtained safely. Keep the VBT binary private.
-2. Trace `hwSetMode()` and the relevant `TRANS_DDI_FUNC_CTL_A` field against the exact patched Tiger Lake driver and NootedGreen call order. Remove the contradictory source comment and design a Yoga-specific, reversible path that preserves or correctly programs the observed two-lane state before any hardware test.
+2. Trace `setupOptimalLaneCount()`, register staging, and `hwSetMode()` against the exact patched Tiger Lake driver and NootedGreen call order. In this source revision, `-ngreenkeepefi` gates one display-register staging block, but `hwSetMode()` still separately writes `0x8A000106` on every non-real-TGL path. Do not treat that boot argument as a Yoga two-lane safeguard; design a Yoga-specific, reversible path and capture the Yoga's pre-macOS register state before any hardware test.
 3. Resolve the available-versus-enabled topology reporting and identify what the Tiger Lake driver expects before changing EU/L3 overrides.
 4. Finish Yoga I2C/GPIO resource analysis and USB port enumeration.
 5. Only then generate separate recovery and acceleration configurations. No installer, EFI generation, or internal-disk operation is part of this evidence-analysis step.

@@ -33,14 +33,14 @@ Keep two configurations separate and machine-specific:
 1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; only the minimum verified platform support needed to reach recovery or the installer. The AX211 is now a Wi-Fi-only Recovery candidate, but its Tahoe driver path is experimental and untested on this Yoga; see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
 2. **Experimental acceleration:** add the 9A49 presentation only after confirming the Yoga's PCI path; add the active EU/subslice and L3 topology only after reading the target's Linux fuse/topology report; add a Yoga-derived panel and ACPI setup; keep each experimental driver change independently switchable.
 
-No configuration is generated yet. The existing `config-install.plist` is still an XPS config and retains the 9A49 GPU spoof and XPS ACPI/USB settings, so it is not a Yoga recovery configuration.
+A Yoga Recovery config template and local builder are now available in [RECOVERY-EFI.md](RECOVERY-EFI.md). A local output was validated with the matching OpenCore 1.0.8 `ocvalidate`, but it has not been boot-tested and is not installer media. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
 
 ## Evidence gates before an EFI
 
 1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, i915 display state, and SSEU topology. Target-side inventory is complete; the manifest and findings are summarized in EVIDENCE-ANALYSIS.md.
 2. The user has completed the firmware evidence export: 51 files are present and the manifest lists no missing captures. Raw files remain private and out of Git.
 3. Derive the I2C/GPIO interrupts and a USB map from the Yoga itself. Keep the reported storage, Kubuntu EFI/ext4 partitions, and swap outside this porting work.
-4. Build a Yoga recovery config and validate it with the validator matching the actual OpenCore binary version.
+4. Build the Recovery candidate with the pinned OpenCore 1.0.8 helper; the config schema is validated, but hardware boot and Wi-Fi still need testing. See [RECOVERY-EFI.md](RECOVERY-EFI.md).
 5. Only then make an isolated acceleration config, keep the exact 25G241/16.0.32 build gates, and define a rollback path to the USB recovery config.
 
 ## Prepared Linux inventory tool

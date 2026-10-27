@@ -1,6 +1,6 @@
 # Wi-Fi-only macOS Recovery path
 
-**Status: the Tahoe kext statically matches the AX211; Recovery networking is not configured or tested on this ThinkPad.** The target has no Ethernet port, so Recovery Wi-Fi is a required experiment unless we prepare a verified offline installer.
+**Status: the Tahoe kext statically matches the AX211; a separate Recovery config candidate is prepared and schema-validated, but Wi-Fi has not been tested on this ThinkPad.** The target has no Ethernet port, so Recovery Wi-Fi is a required experiment unless we prepare a verified offline installer.
 
 ## Evidence
 
@@ -12,12 +12,12 @@
 ## Recovery configuration gates
 
 1. Use a separate Yoga Recovery EFI. Do not reuse either Dell config: `config.plist` enables AirportItlwm for Darwin 25.x but contains XPS settings and `SecureBootModel=Disabled`; `config-install.plist` enables plain `itlwm`, which is not a Recovery path.
-2. Resolve the Recovery-specific SecureBootModel setting and validate it against the chosen OpenCore build. The XPS Tahoe config's disabled setting is known to work for that installed system, while generic OpenCore Wi-Fi guidance calls for a valid model in Recovery. Tahoe OTA guidance also uses a disabled setting. Keep Recovery and installed-system configs separate and test the Recovery setting on USB.
+2. The separate Yoga Recovery template uses `SecureBootModel=Default`, as generic OpenCore guidance requires a valid model for AirportItlwm. The installed-system config remains separate; Tahoe OTA guidance may require `Disabled`. Recovery behavior of this Tahoe alpha on the Yoga is still untested.
 3. Do not load `itlwm.kext` and `AirportItlwm.kext` together. Do not add GPU spoofing, NootedGreen, XPS ACPI, Dell USB mapping, or XPS SMBIOS data to the Yoga Recovery EFI.
 4. Boot Recovery and verify the Wi-Fi picker sees the access point and completes association. The Tahoe fork documents WPA2-Personal and WPA2/WPA3 transition networks with optional PMF; it does not support WPA3-only or mandatory PMF.
 5. Record the installer version/build before installation. The graphics patches in this repository target Tahoe 26.7.1 build `25G241`; do not install a different build until those patches are revalidated for it.
 
-A full installer for the pinned build could avoid depending on Recovery Wi-Fi, but Linux-side boot-media creation still needs a reviewed and validated method. A generic Recovery download may install a different build.
+A generic `macrecovery.py -os latest` download may install the newest Tahoe build rather than the repository graphics baseline. Apple released 26.7.2 on 2026-10-26; the graphics patch baseline is 26.7.1 build `25G241`. Use Recovery first to test boot/Wi-Fi only, then stop before installing until the build is pinned or the graphics patches are revalidated. See [RECOVERY-EFI.md](RECOVERY-EFI.md).
 
 **Current result:** AX211 device matching is confirmed from the bundled kext metadata. macOS boot, Recovery association, and Wi-Fi stability on this Yoga remain untested. If Recovery cannot connect, stop before installing; use a validated offline installer or obtain a compatible wired adapter.
 

@@ -50,12 +50,16 @@ KEXTS = {
         "Contents/PlugIns/VoodooPS2Mouse.kext/VoodooPS2Mouse":
             "075be10067839c38366da4f8864a87506e0c5d0305f98e540cd30e6da9adacab",
     },
+    "XHCI-unsupported.kext": {
+        "Contents/Info.plist": "00fe5c096dbc349544260b205464c068b2a81ecf7541be4412ea7a752dd2cfd0",
+    },
 }
 
 EFI_FILES = {
     "X64/EFI/BOOT/BOOTx64.efi": "EFI/BOOT/BOOTx64.efi",
     "X64/EFI/OC/OpenCore.efi": "EFI/OC/OpenCore.efi",
     "X64/EFI/OC/Drivers/OpenRuntime.efi": "EFI/OC/Drivers/OpenRuntime.efi",
+    "X64/EFI/OC/Drivers/OpenHfsPlus.efi": "EFI/OC/Drivers/OpenHfsPlus.efi",
     "Utilities/ocvalidate/ocvalidate.linux": None,
     "Utilities/macserial/macserial.linux": None,
 }
@@ -124,8 +128,9 @@ def validate_payload(config: dict, staged: Path) -> None:
         if not bundle.is_dir():
             raise RuntimeError(f"Enabled kext bundle is missing: {item['BundlePath']}")
         for key in ("ExecutablePath", "PlistPath"):
-            if not (bundle / item[key]).is_file():
-                raise RuntimeError(f"Missing {key} for enabled kext {item['BundlePath']}: {item[key]}")
+            relative = item[key]
+            if relative and not (bundle / relative).is_file():
+                raise RuntimeError(f"Missing {key} for enabled kext {item['BundlePath']}: {relative}")
     for item in config["UEFI"]["Drivers"]:
         if item["Enabled"] and not (oc / "Drivers" / item["Path"]).is_file():
             raise RuntimeError(f"Missing enabled UEFI driver: {item['Path']}")
@@ -192,6 +197,7 @@ def main() -> int:
         generic.update(identity)
         config_path = staged / "EFI/OC/config.plist"
         config_path.write_bytes(plistlib.dumps(config, fmt=plistlib.FMT_XML, sort_keys=False))
+        config_path.chmod(0o600)
 
         staged_kexts = staged / "EFI/OC/Kexts"
         kext_lines = []
@@ -202,7 +208,11 @@ def main() -> int:
             destination = staged_kexts / name
             shutil.copytree(source, destination)
             for relative, expected in expected_execs.items():
-                if relative == "Contents/PlugIns/VoodooPS2Keyboard.kext/VoodooPS2Keyboard":
+                if relative == "Contents/Info.plist":
+                    info_path = destination / relative
+                    info = plistlib.loads(info_path.read_bytes())
+                    actual = sha256(info_path)
+                elif relative == "Contents/PlugIns/VoodooPS2Keyboard.kext/VoodooPS2Keyboard":
                     plugin = destination / "Contents/PlugIns/VoodooPS2Keyboard.kext"
                     executable = plugin / "Contents/MacOS/VoodooPS2Keyboard"
                     info_path = plugin / "Contents/Info.plist"
@@ -214,9 +224,10 @@ def main() -> int:
                     info = plistlib.loads(info_path.read_bytes())
                 else:
                     executable, info = bundle_executable(destination)
-                actual = sha256(executable)
+                if relative != "Contents/Info.plist":
+                    actual = sha256(executable)
                 if actual != expected:
-                    raise SystemExit(f"Unexpected {name} binary for {info.get('CFBundleVersion')}: {actual}")
+                    raise SystemExit(f"Unexpected {name} payload for {info.get('CFBundleVersion')}: {actual}")
                 kext_lines.append(f"{name} {info.get('CFBundleVersion')} {actual}")
 
         validate_payload(config, staged)
@@ -230,7 +241,7 @@ def main() -> int:
             f"OpenCore: {OC_VERSION}; archive SHA-256: {actual_hash}",
             f"SMBIOS model: {MODEL}; a local serial/MLB/UUID/ROM set is in config.plist.",
             "Do not commit or publish this generated config. Apple service acceptance is not verified.",
-            "Kext executable SHA-256 values:",
+            "Kext payload SHA-256 values:",
             *kext_lines,
             f"config.plist SHA-256: {sha256(config_path)}",
             "No BaseSystem image, ACPI tables, USB map, GPU spoof, NootedGreen, Bluetooth, audio, or I2C kexts included.",

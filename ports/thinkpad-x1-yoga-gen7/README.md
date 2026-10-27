@@ -1,6 +1,6 @@
 # ThinkPad X1 Yoga Gen 7 port scaffold
 
-**Status: non-bootable research scaffold. No Yoga EFI, installer, or compatibility result exists yet.** This branch is being developed on the user's separate main PC; the user collected Linux inventory and raw ACPI/VBT evidence on the Yoga and returned it by USB; this session reviews it on the separate main PC. Raw firmware dumps stay private and out of Git.
+**Status: a Recovery EFI candidate is staged and schema-validated on the main PC; it is not boot-tested and is not installer media.** This branch is being developed on the user's separate main PC; the user collected Linux inventory and raw ACPI/VBT evidence on the Yoga and returned it by USB; this session reviews it on the separate main PC. Raw firmware dumps stay private and out of Git.
 
 ## Repository audit
 
@@ -33,7 +33,7 @@ Keep two configurations separate and machine-specific:
 1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; only the minimum verified platform support needed to reach recovery or the installer. The AX211 is now a Wi-Fi-only Recovery candidate, but its Tahoe driver path is experimental and untested on this Yoga; see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
 2. **Experimental acceleration:** add the 9A49 presentation only after confirming the Yoga's PCI path; add the active EU/subslice and L3 topology only after reading the target's Linux fuse/topology report; add a Yoga-derived panel and ACPI setup; keep each experimental driver change independently switchable.
 
-A Yoga Recovery config template and local builder are now available in [RECOVERY-EFI.md](RECOVERY-EFI.md). A local output was validated with the matching OpenCore 1.0.8 `ocvalidate`, but it has not been boot-tested and is not installer media. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
+A Yoga Recovery config template and local builder are now available in [RECOVERY-EFI.md](RECOVERY-EFI.md); see [KEXT-APPLICABILITY.md](KEXT-APPLICABILITY.md) for per-device coverage and omissions. The private local output was validated with matching OpenCore 1.0.8 `ocvalidate`, but it has not been boot-tested and is not installer media. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
 
 ## Evidence gates before an EFI
 
@@ -71,8 +71,8 @@ It exports raw ACPI tables, the i915 VBT (when available), and i915 display/topo
 
 ## Disk and installer boundary
 
-The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and all internal partitions remain untouched. The 64 GB USB has only carried the private evidence export; no installer, partitioning, formatting, EFI generation, or internal-drive operation has been performed.
+The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and all internal partitions remain untouched. The 64 GB USB still contains the private evidence export and MSI.ROM; the EFI candidate was generated only in local staging. No files were copied to or erased from the USB, and no internal-drive, partition, or Kubuntu EFI operation has been performed.
 
 ## Change boundary
 
-The initial commits stay inside `ports/thinkpad-x1-yoga-gen7/`. The Dell EFI and root build/install scripts remain unchanged. No installer, partitioning, formatting, EFI generation, or drive operation has been performed.
+The initial commits stay inside `ports/thinkpad-x1-yoga-gen7/`. The Dell EFI and root build/install scripts remain unchanged. A Recovery EFI was generated only in private local staging; no installer media, USB, partition, internal EFI, or drive operation has been performed.

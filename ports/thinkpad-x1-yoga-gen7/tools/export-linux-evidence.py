@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Export Linux ACPI tables to a new folder on an already-mounted USB device.
+"""Copy ACPI and Intel i915 display evidence to a new folder on a mounted USB.
 
-Raw ACPI tables are machine-specific firmware data. Keep them private and out of Git.
-The exporter never mounts, partitions, formats, or writes by an unchecked path: it
-opens the destination parent first, verifies that filesystem is USB-backed, and
-performs all writes relative to that open directory handle.
+The files contain machine-specific firmware/configuration information. Keep them
+private and out of Git. This script is for the Yoga running Kubuntu, not the main
+PC. It does not mount, partition, format, or write outside the selected USB folder.
 """
 from __future__ import annotations
 
@@ -16,6 +15,14 @@ import os
 from pathlib import Path
 import re
 import sys
+
+MAX_DEBUGFS_BYTES = 1024 * 1024
+DEBUGFS_REPORTS = (
+    "i915_display_info",
+    "i915_sseu_status",
+    "i915_dmc_info",
+    "i915_edp_psr_status",
+)
 
 
 def read_text(path: Path) -> str:
@@ -30,7 +37,7 @@ def decode_mount_field(value: str) -> str:
 
 
 def open_usb_parent(path: Path) -> tuple[int, Path]:
-    """Open and verify the destination parent; return its fd for race-safe writes."""
+    """Open and verify the destination parent; return its fd for anchored writes."""
     parent = path.parent.resolve(strict=True)
     flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0)
     try:
@@ -66,9 +73,8 @@ def open_usb_parent(path: Path) -> tuple[int, Path]:
         if mountpoint == "/":
             raise RuntimeError("refusing to write to the root filesystem; select a mounted USB folder")
 
-        device_link = Path("/sys/dev/block") / major_minor
         try:
-            device_path = device_link.resolve(strict=True)
+            device_path = (Path("/sys/dev/block") / major_minor).resolve(strict=True)
         except OSError as exc:
             raise RuntimeError(f"cannot verify output device {major_minor} through sysfs") from exc
         if not any(re.fullmatch(r"usb[0-9]+", part) for part in device_path.parts):
@@ -81,19 +87,22 @@ def open_usb_parent(path: Path) -> tuple[int, Path]:
         raise
 
 
-def collect_tables() -> list[tuple[str, bytes]]:
+def collect_acpi() -> tuple[list[tuple[str, bytes]], list[str]]:
     roots = (
         ("static", Path("/sys/firmware/acpi/tables")),
         ("dynamic", Path("/sys/firmware/acpi/tables/dynamic")),
     )
-    result: list[tuple[str, bytes]] = []
+    files: list[tuple[str, bytes]] = []
+    missing: list[str] = []
     for scope, root in roots:
         try:
             entries = sorted(root.iterdir())
         except FileNotFoundError:
+            missing.append(f"ACPI {scope} table directory not found: {root}")
             continue
         except OSError as exc:
-            raise RuntimeError(f"cannot read ACPI table directory {root}: {exc}") from exc
+            missing.append(f"ACPI {scope} tables unreadable: {exc}")
+            continue
 
         for entry in entries:
             if not entry.is_file():
@@ -102,20 +111,62 @@ def collect_tables() -> list[tuple[str, bytes]]:
             try:
                 data = entry.read_bytes()
             except OSError as exc:
-                raise RuntimeError(
-                    f"cannot read {entry}; if Kubuntu denies access, rerun with sudo"
-                ) from exc
+                missing.append(f"ACPI table {entry.name} unreadable: {exc}")
+                continue
             if len(data) >= 36:
-                result.append((f"{scope}-{safe_name}.bin", data))
+                files.append((f"{scope}-{safe_name}.bin", data))
+            else:
+                missing.append(f"ACPI table {entry.name} shorter than its 36-byte header")
 
-    if not result:
-        raise RuntimeError("no readable ACPI tables were found under /sys/firmware/acpi/tables")
-    return result
+    if not files:
+        raise RuntimeError("no readable ACPI tables were found")
+    return files, missing
+
+
+def collect_i915_debugfs() -> tuple[list[tuple[str, bytes]], list[str]]:
+    root = Path("/sys/kernel/debug/dri")
+    files: list[tuple[str, bytes]] = []
+    missing: list[str] = []
+    if not root.is_dir():
+        return files, ["i915 debugfs unavailable; debugfs may not be mounted"]
+
+    for gpu in sorted(root.iterdir()):
+        if not gpu.is_dir() or not gpu.name.isdecimal():
+            continue
+        if not (Path("/sys/class/drm") / f"card{gpu.name}").exists():
+            continue
+        for name in ("i915_vbt", *DEBUGFS_REPORTS):
+            source = gpu / name
+            output_name = f"i915-dri{gpu.name}-{name}.{'bin' if name == 'i915_vbt' else 'txt'}"
+            if not source.is_file():
+                missing.append(f"{source}: not exposed by this kernel")
+                continue
+            try:
+                with source.open("rb") as stream:
+                    data = stream.read(MAX_DEBUGFS_BYTES + 1)
+            except OSError as exc:
+                missing.append(f"{source}: unreadable ({exc})")
+                continue
+            if len(data) > MAX_DEBUGFS_BYTES:
+                missing.append(f"{source}: exceeds {MAX_DEBUGFS_BYTES} byte capture limit")
+                continue
+            if name == "i915_vbt" and not data:
+                missing.append(f"{source}: empty VBT")
+            elif name == "i915_vbt" and not data.startswith(b"$VBT"):
+                missing.append(f"{source}: captured bytes do not start with the expected $VBT signature")
+            elif not data:
+                missing.append(f"{source}: empty diagnostic report")
+            else:
+                files.append((output_name, data))
+
+    if not any("i915_vbt" in name for name, _ in files):
+        missing.append("No readable i915_vbt binary was captured; rerun with sufficient read access if needed")
+    return files, missing
 
 
 def write_file(directory_fd: int, name: str, data: bytes) -> None:
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_CLOEXEC", 0)
-    file_fd = os.open(name, flags, 0o600, dir_fd=directory_fd)
+    file_fd = os.open(name, flags, 0o644, dir_fd=directory_fd)
     with os.fdopen(file_fd, "wb") as stream:
         stream.write(data)
 
@@ -125,14 +176,14 @@ def main() -> int:
     parser.add_argument(
         "--confirm-x1-yoga-gen7",
         action="store_true",
-        help="confirm this command is being run on the target ThinkPad, not the main PC",
+        help="confirm this is being run on the target ThinkPad, not the main PC",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         required=True,
         metavar="USB_PATH",
-        help="new output folder under an already-mounted USB filesystem; the folder must not exist",
+        help="new folder under an already-mounted USB filesystem; folder must not exist",
     )
     args = parser.parse_args()
 
@@ -152,8 +203,11 @@ def main() -> int:
     parent_fd = -1
     try:
         parent_fd, parent = open_usb_parent(requested)
-        tables = collect_tables()
-        os.mkdir(requested.name, mode=0o700, dir_fd=parent_fd)
+        acpi_files, missing = collect_acpi()
+        i915_files, i915_missing = collect_i915_debugfs()
+        files = acpi_files + i915_files
+        missing.extend(i915_missing)
+        os.mkdir(requested.name, mode=0o755, dir_fd=parent_fd)
         output_fd = os.open(
             requested.name,
             os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0),
@@ -161,15 +215,16 @@ def main() -> int:
         )
         try:
             manifest = {
-                "formatVersion": 1,
+                "formatVersion": 2,
                 "createdUtc": datetime.now(timezone.utc).isoformat(),
-                "tableCount": len(tables),
-                "tables": [],
-                "privacy": "Raw machine-specific ACPI firmware data. Do not commit or share without review.",
+                "fileCount": len(files),
+                "files": [],
+                "notCaptured": missing,
+                "privacy": "Machine-specific ACPI/VBT and display diagnostics. Keep private and out of Git.",
             }
-            for filename, data in tables:
+            for filename, data in files:
                 write_file(output_fd, filename, data)
-                manifest["tables"].append({
+                manifest["files"].append({
                     "file": filename,
                     "sizeBytes": len(data),
                     "sha256": hashlib.sha256(data).hexdigest(),
@@ -188,8 +243,10 @@ def main() -> int:
         if parent_fd >= 0:
             os.close(parent_fd)
 
-    print(f"Exported {len(tables)} ACPI tables to {parent / requested.name}")
-    print("Keep these firmware files private and out of Git.")
+    print(f"Exported {len(files)} files to {parent / requested.name}")
+    if missing:
+        print(f"Some evidence could not be captured; see {parent / requested.name / 'manifest.json'}")
+    print("Keep this machine-specific firmware data private and out of Git.")
     return 0
 
 

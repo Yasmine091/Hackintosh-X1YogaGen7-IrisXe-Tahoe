@@ -7,6 +7,7 @@ existing files are never overwritten and parent directories are never created.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import platform
 import sys
 from pathlib import Path
@@ -33,7 +34,7 @@ def section(lines: list[str], title: str, rows: list[str]) -> None:
 
 def collect_dmi() -> list[str]:
     base = Path("/sys/class/dmi/id")
-    # Deliberately omit all serial numbers, UUIDs, asset tags, and product SKUs.
+    # Keep product/board identifiers useful for matching firmware tables; omit serials, UUIDs, and asset tags.
     fields = (
         ("System vendor", "sys_vendor"),
         ("Product name", "product_name"),
@@ -192,13 +193,75 @@ def collect_displays() -> list[str]:
     return rows
 
 
-def collect_gpu_topology() -> list[str]:
+def collect_i915_debugfs() -> list[str]:
     rows: list[str] = []
-    for report in sorted(Path("/sys/kernel/debug/dri").glob("*/i915_sseu_status")):
-        value = read_text(report)
-        if value:
-            rows.append(f"{report}:")
-            rows.extend(f"  {line}" for line in value.splitlines())
+    root = Path("/sys/kernel/debug/dri")
+    if not root.is_dir():
+        return ["i915 debugfs is unavailable (debugfs may not be mounted)"]
+
+    report_names = (
+        "i915_sseu_status",
+        "i915_display_info",
+        "i915_dmc_info",
+        "i915_edp_psr_status",
+    )
+    try:
+        debug_gpus = sorted(root.iterdir())
+    except OSError:
+        return ["i915 debugfs exists but is unreadable (rerun with sudo if appropriate)"]
+
+    found_gpu = False
+    for debug_gpu in debug_gpus:
+        if not debug_gpu.is_dir() or not debug_gpu.name.isdecimal():
+            continue
+        drm_device = Path("/sys/class/drm") / f"card{debug_gpu.name}" / "device"
+        resolved_device = Path(read_link(drm_device)) if drm_device.exists() else Path()
+        bdf = resolved_device.name if resolved_device.name else "unknown"
+        pci = Path("/sys/bus/pci/devices") / bdf
+        vendor = read_text(pci / "vendor")
+        device_id = read_text(pci / "device")
+        device_class = read_text(pci / "class")
+        if vendor != "0x8086" or not device_class.startswith("0x03"):
+            continue
+        found_gpu = True
+        rows.append(
+            f"{debug_gpu}: PCI={bdf} id={vendor}:{device_id} class={device_class}"
+        )
+        for name in report_names:
+            path = debug_gpu / name
+            if not path.is_file():
+                rows.append(f"  {name}: not exposed by this kernel")
+                continue
+            try:
+                data = path.read_bytes()
+            except OSError as exc:
+                rows.append(f"  {name}: unreadable ({exc.strerror or 'permission denied'})")
+                continue
+            value = data.decode("utf-8", errors="replace")
+            rows.append(f"  {name}:")
+            excerpt = value[:65536]
+            rows.extend(f"    {line}" for line in excerpt.splitlines())
+            if len(value) > len(excerpt):
+                rows.append("    (truncated after 65536 characters)")
+
+        vbt = debug_gpu / "i915_vbt"
+        if not vbt.is_file():
+            rows.append("  i915_vbt: not exposed by this kernel")
+        else:
+            try:
+                raw_vbt = vbt.read_bytes()
+            except OSError as exc:
+                rows.append(f"  i915_vbt: unreadable ({exc.strerror or 'permission denied'})")
+            else:
+                signature = raw_vbt[:4].decode("ascii", errors="replace")
+                rows.append(
+                    f"  i915_vbt: available bytes={len(raw_vbt)} signature={signature!r} "
+                    f"sha256={hashlib.sha256(raw_vbt).hexdigest()}"
+                )
+                rows.append("  i915_vbt: binary not included in this text report; use the USB evidence exporter")
+
+    if not found_gpu:
+        rows.append("No matching Intel display device was found under i915 debugfs")
     return rows
 
 
@@ -208,8 +271,8 @@ def build_report() -> str:
         f"Kernel: {platform.release()}",
         "",
         "Privacy/safety: serials, UUIDs, MAC addresses, storage devices, and partition tables are not collected.",
-        "This script reads selected /proc and /sys data only; it does not invoke sudo, install packages, mount filesystems,",
-        "change settings, or write a report unless --output is explicitly supplied.",
+        "This script reads selected /proc, /sys, and i915 debugfs data; it does not invoke sudo, install packages,",
+        "mount filesystems, change settings, or write a report unless --output is explicitly supplied.",
     ]
     section(lines, "System and BIOS", collect_dmi())
     section(lines, "Processor", collect_cpu())
@@ -219,12 +282,17 @@ def build_report() -> str:
     section(lines, "I2C adapters and clients", collect_i2c())
     section(lines, "ACPI table headers only", collect_acpi_tables())
     section(lines, "Internal eDP connectors", collect_displays())
-    section(lines, "i915 EU topology (when debugfs already exposes it)", collect_gpu_topology())
+    section(lines, "i915 display, firmware, and GPU topology diagnostics", collect_i915_debugfs())
     return "\n".join(lines) + "\n"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--confirm-x1-yoga-gen7",
+        action="store_true",
+        help="confirm this is being run on the target ThinkPad, not the main PC",
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -235,6 +303,10 @@ def main() -> int:
 
     if not sys.platform.startswith("linux"):
         parser.error("run this on the ThinkPad from Kubuntu; the main PC inventory would not describe the target")
+    if not args.confirm_x1_yoga_gen7:
+        parser.error("refusing to collect without --confirm-x1-yoga-gen7")
+    if "lenovo" not in read_text(Path("/sys/class/dmi/id/sys_vendor")).casefold():
+        parser.error("system vendor is not Lenovo; refusing to inventory this machine")
 
     report = build_report()
     if args.output is None:

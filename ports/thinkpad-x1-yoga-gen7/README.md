@@ -45,24 +45,24 @@ No configuration is generated yet. The existing `config-install.plist` is still 
 
 ## Prepared Linux inventory tool
 
-`tools/collect-linux-inventory.py` reads selected `/proc` and `/sys` entries and prints a report to stdout by default. It omits storage devices and partition tables, DMI serials/UUIDs, MAC addresses, and USB serial fields. It does not call sudo, install packages, mount filesystems, or change settings. It is intended to be run on the Yoga from Kubuntu, never on this main PC. Its optional `--output PATH` creates a new file and refuses to overwrite; use it only after explicitly choosing a removable-USB path. No report has been saved.
+`tools/collect-linux-inventory.py` reads selected `/proc`, `/sys`, and i915 debugfs entries and prints a report to stdout by default. It includes available `i915_display_info`, `i915_sseu_status`, DMC and eDP power-save diagnostics, plus VBT size/signature/hash. It omits storage devices and partition tables, DMI serials/UUIDs, MAC addresses, and USB serial fields. It does not invoke sudo, install packages, mount filesystems, or change settings. From Kubuntu on the Yoga, start with `python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`; if i915 debugfs entries say unreadable, rerun as `sudo python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`. It also checks that DMI says Lenovo. The default prints to the terminal and writes nothing. The optional `--output PATH` is not needed for sharing; if used, choose a removable-USB path. This tool has not been run on the main PC.
 
-### Prepared ACPI exporter
+### Prepared firmware evidence exporter
 
-`tools/export-linux-acpi.py` is for the Yoga running Kubuntu only. After mounting the external USB yourself, run it with `--confirm-x1-yoga-gen7` and an absolute path to a new folder on that USB, for example:
+`tools/export-linux-evidence.py` is for the Yoga running Kubuntu only. After mounting the external USB yourself, run it with `--confirm-x1-yoga-gen7` and an absolute path to a new folder on that USB, for example:
 
 ```sh
-sudo python3 tools/export-linux-acpi.py \
+sudo python3 tools/export-linux-evidence.py \
   --confirm-x1-yoga-gen7 \
-  --output-dir /absolute/path/on/usb/x1yoga-acpi
+  --output-dir /absolute/path/on/usb/x1yoga-evidence
 ```
 
-The exporter checks Lenovo DMI vendor data and that the destination parent is on a USB-backed mounted filesystem. It anchors output to that open directory; it does not mount or format the USB. The confirmation flag is an operator check and does not independently prove the exact Yoga model. Raw ACPI tables can contain machine-specific firmware data: keep them private and out of Git. This tool has not been run. It does not capture the VBT or i915 topology; those remain separate evidence items.
+It exports raw ACPI tables, the i915 VBT (when available), and i915 display/topology diagnostics. Intel documents the VBT as platform-specific display configuration available from i915 debugfs at `/sys/kernel/debug/dri/<n>/i915_vbt` ([VBT docs](https://drm.pages.freedesktop.org/intel-docs/vbt.html)). The exporter checks Lenovo DMI vendor data and that the destination parent is on a USB-backed mounted filesystem, then anchors writes to that open directory. It does not mount or format the USB. The confirmation flag is an operator check and does not independently prove the exact Yoga model. The manifest records missing/unreadable items. Raw ACPI/VBT data can contain machine-specific firmware details: keep it private and out of Git. This tool has not been run.
 
 ## Disk and installer boundary
 
 The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and the available 64 GB USB have not been used. No installer, partitioning, formatting, EFI generation, or drive operation has been performed. Any later USB write requires an explicit device identification and approval.
 
-## First safe commit
+## Change boundary
 
-Keep the first commit to this port folder: the evidence-labelled profile, this audit/plan, the graphics applicability matrix, and the read-only inventory tool. It must not modify the Dell EFI, root build/install scripts, or any disk.
+The initial commits stay inside `ports/thinkpad-x1-yoga-gen7/`. The Dell EFI and root build/install scripts remain unchanged. No installer, partitioning, formatting, EFI generation, or drive operation has been performed.

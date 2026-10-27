@@ -1,6 +1,14 @@
 # Recovery EFI candidate
 
-**Status: staged on the main PC and validated with the matching OpenCore 1.0.8 validator; not boot-tested on the Yoga and not an installer USB.** A private local output was staged on the main PC. Its generated SMBIOS values are intentionally absent from this repository.
+**Status: the USB boots OpenCore and starts Tahoe Recovery's kernel on the Yoga, but stalls before the Recovery interface appears.** The EFI was validated with the matching OpenCore 1.0.8 validator. Its generated SMBIOS values are intentionally absent from this repository. No internal SSD partition or Kubuntu EFI has been changed.
+
+## Current boot diagnosis
+
+The USB contains Tahoe 26.6.2 (build 25G83) Recovery. The latest OpenCore log confirms the selected entry is the Recovery DMG (`+DMG`, `+ROS`), loads `BootKernelExtensions.kc`, and reaches `EXITBS`. The screen then prints macOS kernel messages and repeatedly stops after CoreAnalyticsHub initialization. A five-minute wait and an earlier 40-minute wait did not advance. Disabling AirportItlwm and enabling `ReleaseUsbOwnership` separately did not resolve the stall; neither result identifies the root cause.
+
+The Yoga firmware's `ProjSsdt` table also reports `AE_NOT_FOUND` for `\_SB.PC00.XHCI.RHUB.HS01` during this boot. The captured DSDT creates `HS01` conditionally, while `ProjSsdt` references it directly. This is a real ACPI load failure, but whether it causes the Recovery stall is still unknown. Do not copy Dell ACPI or suppress the table without an isolated test.
+
+The original Yoga template omitted `NVRAM > Delete > boot-args`, so OpenCore kept an older `-v keepsyms=1 -igfxvesa` value and ignored newly requested debug options. This template now deletes that one Apple NVRAM variable before adding the configured value. The USB's current private diagnostic config also adds `debug=0x100 io=0x16` to expose more kernel/IOKit activity and restores `ReleaseUsbOwnership=false`. Those temporary diagnostic arguments are not part of this tracked template. The Recovery DMG/chunklist and EFI binaries on USB match the staged copies byte for byte, and `ocvalidate` reports no schema errors. A successful schema check does not establish hardware compatibility.
 
 ## What this configuration is for
 
@@ -44,7 +52,7 @@ The script downloads or accepts the official OpenCore 1.0.8 archive, checks its 
 --reuse-config /path/to/the/previous/EFI/OC/config.plist
 ```
 
-The output contains an `EFI/` folder only. It includes OpenRuntime and OpenHfsPlus; OpenHfsPlus is needed by many Recovery images. It does not contain Apple's `BaseSystem.dmg`/chunklist, does not format or write a USB, and does not touch any laptop disk or firmware setting. Do not copy it onto the evidence/MSI-ROM USB until the media layout is reviewed.
+The builder output contains an `EFI/` folder only. It includes OpenRuntime and OpenHfsPlus; OpenHfsPlus is needed by many Recovery images. The builder does not contain Apple's `BaseSystem.dmg`/chunklist, format or write a USB, or touch any laptop disk or firmware setting. The current USB was prepared separately and contains Recovery plus private evidence and MSI.ROM.
 
 ## Kubuntu and macOS picker
 

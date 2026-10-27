@@ -1,12 +1,12 @@
 # ThinkPad X1 Yoga Gen 7 port scaffold
 
-**Status: a Recovery EFI candidate is staged and schema-validated on the main PC; it is not boot-tested and is not installer media.** This branch is being developed on the user's separate main PC; the user collected Linux inventory and raw ACPI/VBT evidence on the Yoga and returned it by USB; this session reviews it on the separate main PC. Raw firmware dumps stay private and out of Git.
+**Status: the USB boots OpenCore and starts the Tahoe Recovery kernel on the Yoga, but Recovery currently stalls before its interface appears.** The Recovery EFI is schema-validated; it is not yet a working installer. Development happens on the separate main PC. Raw Yoga ACPI/VBT evidence and generated SMBIOS values stay private and out of Git. Current boot findings are in [RECOVERY-EFI.md](RECOVERY-EFI.md).
 
 ## Repository audit
 
 The Yoga port branch was started from revision 99631db20ad841bb5d5f3934e4ffa4dc09f92dee and is developed as yoga-gen7, tracking the user's origin/dev. The upstream Dell configuration remains unchanged. The maintained EFI and all confirmed results in this repository target a Dell XPS 13 Plus 9320 with a Raptor Lake i7-1360P.
 
-The XPS EFI is not a Yoga template. It uses SMBIOS `MacBookPro16,2`, GPU spoofing and framebuffer properties, an XPS USB map, XPS I2C ACPI, and Dell-specific power/sensor configuration. In particular, `acpi/SSDT-XPS-I2C.dsl` hard-codes I2C0/TPL0 as touchscreen and I2C1/TPD0 as trackpad; target-side evidence confirms I2C0.TPD0 for the SYNA8016 touchpad and I2C1.TPL1 for the WACF2200 pen/touch device. The exact GPIO resources and Yoga USB map still need analysis before any EFI is assembled.
+The XPS EFI is not a Yoga template. It uses SMBIOS `MacBookPro16,2`, GPU spoofing and framebuffer properties, an XPS USB map, XPS I2C ACPI, and Dell-specific power/sensor configuration. In particular, `acpi/SSDT-XPS-I2C.dsl` hard-codes I2C0/TPL0 as touchscreen and I2C1/TPD0 as trackpad; target-side evidence confirms I2C0.TPD0 for the SYNA8016 touchpad and I2C1.TPL1 for the WACF2200 pen/touch device. The exact GPIO resources and Yoga USB map still need analysis before a complete acceleration EFI is assembled.
 
 ### Closest graphics evidence
 
@@ -30,10 +30,10 @@ Apple's Tahoe update page now also lists 26.7.2. Keep this port on the repositor
 
 Keep two configurations separate and machine-specific:
 
-1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; only the minimum verified platform support needed to reach recovery or the installer. The AX211 is now a Wi-Fi-only Recovery candidate, but its Tahoe driver path is experimental and untested on this Yoga; see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
+1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; a minimal platform support candidate. The AX211 is a Wi-Fi-only Recovery candidate, but its Tahoe driver path is experimental and untested on this Yoga; see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
 2. **Experimental acceleration:** add the 9A49 presentation only after confirming the Yoga's PCI path; add the active EU/subslice and L3 topology only after reading the target's Linux fuse/topology report; add a Yoga-derived panel and ACPI setup; keep each experimental driver change independently switchable.
 
-A Yoga Recovery config template and local builder are now available in [RECOVERY-EFI.md](RECOVERY-EFI.md); see [KEXT-APPLICABILITY.md](KEXT-APPLICABILITY.md) for per-device coverage and omissions. The private local output was validated with matching OpenCore 1.0.8 `ocvalidate`, but it has not been boot-tested and is not installer media. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
+A Yoga Recovery config template and local builder are available in [RECOVERY-EFI.md](RECOVERY-EFI.md); see [KEXT-APPLICABILITY.md](KEXT-APPLICABILITY.md) for per-device coverage and omissions. The USB has booted OpenCore and reached the Recovery kernel but currently stalls there. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
 
 ## Evidence gates before an EFI
 
@@ -71,8 +71,8 @@ It exports raw ACPI tables, the i915 VBT (when available), and i915 display/topo
 
 ## Disk and installer boundary
 
-The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and all internal partitions remain untouched. The 64 GB USB still contains the private evidence export and MSI.ROM; the EFI candidate was generated only in local staging. No files were copied to or erased from the USB, and no internal-drive, partition, or Kubuntu EFI operation has been performed.
+The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and all internal partitions remain untouched. The 64 GB USB contains the private evidence export, MSI.ROM, Recovery image, OpenCore EFI, and local config backups. No internal-drive, partition, or Kubuntu EFI operation has been performed.
 
 ## Change boundary
 
-The initial commits stay inside `ports/thinkpad-x1-yoga-gen7/`. The Dell EFI and root build/install scripts remain unchanged. A Recovery EFI was generated only in private local staging; no installer media, USB, partition, internal EFI, or drive operation has been performed.
+The Yoga port changes stay inside `ports/thinkpad-x1-yoga-gen7/`. The Dell EFI and root build/install scripts remain unchanged. Current USB experiments and private SMBIOS values are not committed; internal partitions and EFI remain untouched.

@@ -25,10 +25,23 @@ The DSDT/SSDT disassembly identifies these target paths and firmware HID mapping
 
 The devices use PNP0C50. The firmware's _INI and _CRS methods populate HID and GPIO/interrupt resources dynamically, so the exact runtime interrupt mapping still needs careful review. SSDT10 exposes display children DD1F/DD2F and brightness methods; those methods do not prove macOS brightness control.
 
+## USB paths (partial)
+
+The user's read-only Linux port capture placed all four tested external connectors under xHCI PCI `0000:00:14.0`, Linux USB bus 3:
+
+| User label | Linux device path | Observed device speed |
+|---|---|---:|
+| USB-A-LEFT | `3-9` | 480 Mbit/s |
+| USB-A-RIGHT | `3-7` | 480 Mbit/s |
+| USB-C-LEFT-BOTTOM | `3-1` | 480 Mbit/s |
+| USB-C-LEFT-TOP-CHARGING | `3-3` | 480 Mbit/s |
+
+The USB-C connector labeled “CHARGING” also enumerated a USB data device in this capture; this confirms data at the tested speed, not charging behavior or maximum link speed. The built-in Bluetooth, fingerprint reader, and Intel USB Bridge appeared at `3-10`, `3-6`, and `3-8` respectively, each at 12 Mbit/s. No SuperSpeed-capable test device was used, so these observations do not prove that the external ports are USB 2-only or reveal their USB 3 companion paths. This Linux path list is not an OpenCore USB map, and no Thunderbolt/USB4 PCIe topology was captured.
+
 ## Safe next work
 
 1. Determine how Linux selected the active panel despite the VBT's EDID-based primary type and missing AUO PnP match; capture the live firmware panel type if it can be obtained safely. Keep the VBT binary private.
 2. Trace `setupOptimalLaneCount()`, register staging, and `hwSetMode()` against the exact patched Tiger Lake driver and NootedGreen call order. In this source revision, `-ngreenkeepefi` gates one display-register staging block, but `hwSetMode()` still separately writes `0x8A000106` on every non-real-TGL path. Do not treat that boot argument as a Yoga two-lane safeguard; design a Yoga-specific, reversible path and capture the Yoga's pre-macOS register state before any hardware test.
 3. Resolve the available-versus-enabled topology reporting and identify what the Tiger Lake driver expects before changing EU/L3 overrides.
-4. Finish Yoga I2C/GPIO resource analysis and USB port enumeration.
+4. Finish Yoga I2C/GPIO resource analysis; repeat the external USB capture with a known SuperSpeed device to identify USB 3 companion paths, then inspect Thunderbolt separately.
 5. Only then generate separate recovery and acceleration configurations. No installer, EFI generation, or internal-disk operation is part of this evidence-analysis step.

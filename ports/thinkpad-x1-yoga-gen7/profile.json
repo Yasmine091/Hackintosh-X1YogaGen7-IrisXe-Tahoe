@@ -172,6 +172,57 @@
       }
     ],
     "usbPortMapCaptured": false,
+    "usbPortMapStatus": "partial-usb2-paths-observed",
+    "usbTopologyEvidence": {
+      "source": "User-run read-only USB port watcher on the Yoga under Kubuntu",
+      "hostControllerPciAddress": "0000:00:14.0",
+      "linuxBus": "3",
+      "externalConnectorProbes": [
+        {
+          "label": "USB-A-LEFT",
+          "linuxDevicePath": "3-9",
+          "observedSpeedMbps": 480
+        },
+        {
+          "label": "USB-A-RIGHT",
+          "linuxDevicePath": "3-7",
+          "observedSpeedMbps": 480
+        },
+        {
+          "label": "USB-C-LEFT-BOTTOM",
+          "linuxDevicePath": "3-1",
+          "observedSpeedMbps": 480
+        },
+        {
+          "label": "USB-C-LEFT-TOP-CHARGING",
+          "linuxDevicePath": "3-3",
+          "observedSpeedMbps": 480,
+          "note": "A USB data device enumerated here; 480 Mbps does not establish the port's maximum speed."
+        }
+      ],
+      "internalUsbDevicesObserved": [
+        {
+          "device": "AX211 Bluetooth",
+          "linuxDevicePath": "3-10",
+          "observedSpeedMbps": 12
+        },
+        {
+          "device": "Synaptics Prometheus fingerprint reader",
+          "linuxDevicePath": "3-6",
+          "observedSpeedMbps": 12
+        },
+        {
+          "device": "Intel USB Bridge",
+          "linuxDevicePath": "3-8",
+          "observedSpeedMbps": 12
+        }
+      ],
+      "limits": [
+        "The external probes negotiated 480 Mbps; no SuperSpeed-capable test has been captured, so maximum connector speeds and companion paths are unknown.",
+        "Linux device paths are evidence for building a map, not an OpenCore USB map.",
+        "Thunderbolt/USB4 PCIe topology was not captured."
+      ]
+    },
     "thunderboltTopologyCaptured": false,
     "linux": {
       "distribution": "Kubuntu",
@@ -234,7 +285,7 @@
     "Active/fused GPU topology and L3 bank count; available topology and the all-zero enabled-status snapshot are distinct observations",
     "Decoded active Yoga VBT panel/link/backlight configuration",
     "Yoga I2C GPIO interrupt routing and macOS-compatible ACPI resources",
-    "Exact USB port map and Thunderbolt topology",
+    "Complete USB map including SuperSpeed companion paths, and Thunderbolt topology",
     "Successful macOS boot on this Yoga",
     "Metal acceleration or stability on this Yoga",
     "Suitable Xcode version and Simulator compatibility"

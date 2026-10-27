@@ -55,7 +55,7 @@ The inventory report lists devices attached during one Linux boot, but it does n
 python3 ports/thinkpad-x1-yoga-gen7/tools/collect-usb-port-map.py --confirm-x1-yoga-gen7
 ```
 
-Insert one known USB device into one connector at a time and enter its physical label when prompted; repeat for every USB-A/USB-C connector and, if available, a USB 2 and USB 3 device. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. Share the `MAP` lines. This is raw Linux port-path evidence, not yet an OpenCore USB map; Thunderbolt PCIe topology needs a separate check.
+Insert one known USB device into one connector at a time and enter its physical label when prompted; repeat for every USB-A/USB-C connector and, if available, a USB 2 and USB 3 device. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. Share the `MAP` lines. The first capture mapped all four external connectors on bus 3/controller `0000:00:14.0`, but every test negotiated only 480 Mbit/s, so SuperSpeed companion paths remain unknown. Repeat with a known USB 3 device. This is raw Linux port-path evidence, not yet an OpenCore USB map; Thunderbolt PCIe topology needs a separate check.
 
 ### Prepared firmware evidence exporter
 

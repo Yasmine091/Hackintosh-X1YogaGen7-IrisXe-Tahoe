@@ -30,7 +30,7 @@ Apple's Tahoe update page now also lists 26.7.2. Keep this port on the repositor
 
 Keep two configurations separate and machine-specific:
 
-1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; only the minimum verified platform support needed to reach recovery or the installer. Do not depend on AX211 Wi-Fi for Recovery.
+1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; only the minimum verified platform support needed to reach recovery or the installer. The AX211 is now a Wi-Fi-only Recovery candidate, but its Tahoe driver path is experimental and untested on this Yoga; see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
 2. **Experimental acceleration:** add the 9A49 presentation only after confirming the Yoga's PCI path; add the active EU/subslice and L3 topology only after reading the target's Linux fuse/topology report; add a Yoga-derived panel and ACPI setup; keep each experimental driver change independently switchable.
 
 No configuration is generated yet. The existing `config-install.plist` is still an XPS config and retains the 9A49 GPU spoof and XPS ACPI/USB settings, so it is not a Yoga recovery configuration.

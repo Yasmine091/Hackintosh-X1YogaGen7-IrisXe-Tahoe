@@ -15,8 +15,8 @@
   "target": {
     "manufacturer": "Lenovo",
     "model": "ThinkPad X1 Yoga Gen 7",
-    "machineType": null,
-    "biosVersion": null,
+    "machineType": "21CES48D00",
+    "biosVersion": "N3AET87W (1.52)",
     "bootMode": "UEFI",
     "memoryGiB": 32,
     "cpu": {
@@ -36,8 +36,18 @@
       "nominalExecutionUnits": 96,
       "activeExecutionUnits": null,
       "activeSubsliceMask": null,
+      "availableSliceCount": 1,
+      "availableSubsliceCount": 6,
+      "availableExecutionUnits": 96,
+      "availableExecutionUnitsPerSubslice": 16,
+      "enabledTopologySnapshot": {
+        "sliceCount": 0,
+        "subsliceCount": 0,
+        "executionUnits": 0,
+        "note": "One i915 status snapshot; keep separate from available topology and do not interpret as fused topology."
+      },
       "l3BankCount": null,
-      "evidenceNote": "The nominal configuration and PCI ID are user-reported. Active fuses and cache topology for this Yoga are not yet captured."
+      "evidenceNote": "Target-side i915 reports 96 available EUs across six subslices (16 per subslice). Its enabled-status snapshot was all zero while the display pipe was active; active render topology and L3 bank count remain unresolved."
     },
     "display": {
       "connector": "card1-eDP-1",
@@ -66,9 +76,16 @@
       },
       "edidInterfaceDeclaration": "DisplayPort",
       "edidHex": "00ffffffffffff0006af91d200000000161e0104a51e137803d7f2a7554a9c220d515600000001010101010101010101010101010101fa3c80b870b0244010103e002dbc10000018000000fd00303c4b4b10010a202020202020000000fe0041554f0a202020202020202020000000fe004231343055414e30322e31200a00e7",
-      "edpLaneCount": null,
+      "edpLaneCount": 2,
       "edpLinkRate": null,
+      "edpPortClockKHz": 270000,
+      "edpBitsPerPixel": 24,
+      "edpDpcdRevision": "0x14",
+      "edpPsrSinkSupport": true,
+      "edpPsrModeAtCapture": "PSR2 enabled",
       "vbtCaptured": false,
+      "vbtAvailableBytes": 9216,
+      "vbtSha256": "0d81b67665439cea7eb2ed511ce01e1196dd12b550b0063acf436ed13f231961",
       "backlightControl": null
     },
     "network": {
@@ -153,9 +170,12 @@
     "linux": {
       "distribution": "Kubuntu",
       "release": null,
-      "kernel": null,
+      "kernel": "7.0.0-38-generic",
       "status": "Kubuntu boots and works",
-      "suspendStatus": "unreliable"
+      "suspendStatus": "unreliable",
+      "i915DmcFirmware": "i915/adlp_dmc.bin",
+      "i915DmcVersion": "2.20",
+      "i915DmcLoaded": true
     }
   },
   "graphicsReferenceReport": {
@@ -179,10 +199,9 @@
     "note": "This is the checkout's patch baseline, not a claim that the Yoga is supported."
   },
   "unknowns": [
-    "Machine type and BIOS version",
-    "Full DSDT and SSDT tables",
-    "VBT and exact eDP link configuration",
-    "Active GPU EU/subslice fuse topology and L3 bank count",
+    "Raw DSDT/SSDT contents and I2C GPIO resource/interrupt details",
+    "Raw VBT contents and decoded panel/backlight configuration",
+    "Active GPU render topology and L3 bank count; i915 reports 96 available EUs across six subslices, but the enabled-status snapshot was all zero",
     "Exact USB port map and Thunderbolt topology",
     "Successful macOS boot on this Yoga",
     "Metal acceleration or stability on this Yoga",

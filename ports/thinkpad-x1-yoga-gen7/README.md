@@ -37,8 +37,8 @@ No configuration is generated yet. The existing `config-install.plist` is still 
 
 ## Evidence gates before an EFI
 
-1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, and i915 topology evidence. The prepared inventory tool is for the Yoga only; it was not run on the main PC.
-2. Obtain the Yoga's ACPI tables and VBT through a reviewed, read-only capture path. The inventory tool records ACPI table headers only; it does not export AML or VBT data. Keep raw firmware dumps private and out of Git.
+1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, i915 display state, and SSEU topology. The inventory tool is guarded for the Yoga and has not been run on the main PC.
+2. Use the firmware evidence exporter to save raw ACPI tables, VBT, and available i915 display/topology diagnostics to a new folder on an already-mounted USB. Keep raw firmware dumps private and out of Git.
 3. Derive the I2C/GPIO interrupts and a USB map from the Yoga itself. Keep the reported storage, Kubuntu EFI/ext4 partitions, and swap outside this porting work.
 4. Build a Yoga recovery config and validate it with the validator matching the actual OpenCore binary version.
 5. Only then make an isolated acceleration config, keep the exact 25G241/16.0.32 build gates, and define a rollback path to the USB recovery config.

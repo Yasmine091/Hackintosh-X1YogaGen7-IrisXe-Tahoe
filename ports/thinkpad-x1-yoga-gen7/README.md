@@ -47,6 +47,18 @@ No configuration is generated yet. The existing `config-install.plist` is still 
 
 `tools/collect-linux-inventory.py` reads selected `/proc` and `/sys` entries and prints a report to stdout by default. It omits storage devices and partition tables, DMI serials/UUIDs, MAC addresses, and USB serial fields. It does not call sudo, install packages, mount filesystems, or change settings. It is intended to be run on the Yoga from Kubuntu, never on this main PC. Its optional `--output PATH` creates a new file and refuses to overwrite; use it only after explicitly choosing a removable-USB path. No report has been saved.
 
+### Prepared ACPI exporter
+
+`tools/export-linux-acpi.py` is for the Yoga running Kubuntu only. After mounting the external USB yourself, run it with `--confirm-x1-yoga-gen7` and an absolute path to a new folder on that USB, for example:
+
+```sh
+sudo python3 tools/export-linux-acpi.py \
+  --confirm-x1-yoga-gen7 \
+  --output-dir /absolute/path/on/usb/x1yoga-acpi
+```
+
+The exporter checks Lenovo DMI vendor data and that the destination parent is on a USB-backed mounted filesystem. It anchors output to that open directory; it does not mount or format the USB. The confirmation flag is an operator check and does not independently prove the exact Yoga model. Raw ACPI tables can contain machine-specific firmware data: keep them private and out of Git. This tool has not been run. It does not capture the VBT or i915 topology; those remain separate evidence items.
+
 ## Disk and installer boundary
 
 The existing Kubuntu EFI and ext4 partitions, and swap, must remain untouched. The approximately 179 GiB unallocated area and the available 64 GB USB have not been used. No installer, partitioning, formatting, EFI generation, or drive operation has been performed. Any later USB write requires an explicit device identification and approval.

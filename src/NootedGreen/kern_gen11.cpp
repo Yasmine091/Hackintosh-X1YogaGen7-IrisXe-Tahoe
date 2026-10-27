@@ -4810,11 +4810,15 @@ void Gen11::hwInitializeCState(AppleIntel::AppleIntelBaseController *that)
 		//   0x60028 = TRANS_VSYNCSHIFT_A
 		//   0x60030/34 TRANS_DATA_M1/N1_A   — DP M/N values (TU 64, link rate)
 		//   0x60040/44 TRANS_LINK_M1/N1_A
-		// 0x8A000106: bit31=enable, [27:24]=DDI_A, [19:16]=2lanes, [3:1]=DP_SST(0x01)
-		// Pre-matches Apple's target so paramsFbCompare sees no lane-count change; changing
-		// lane count in TRANS_DDI_FUNC_CTL while transcoder is live resets the DDI buffer
-		// and drops the trained link.
-		// xe/nooted: the values below are a register dump of the author's 2560x1600, 2-lane eDP panel.
+		// Linux i915 defines TRANS_DDI_MODE_SELECT in bits[26:24] and
+		// TRANS_DDI_PORT_WIDTH in bits[3:1] as lane_count - 1. Thus 0x8A000106
+		// encodes enabled DDI A / DP SST / 8bpc with four lanes.
+		// The legacy note attributed this dump to a 2-lane panel and said it matched
+		// Apple's two-lane target; that conflicts with the register field definitions.
+		// Treat these values as reference-only until their source and live link state
+		// are verified. Changing width in a live transcoder may reset the DDI buffer.
+		// The original notes attribute the timing values to the author's 2560x1600 panel;
+		// the exact panel/link provenance is unresolved.
 		// On a different panel they replace the firmware-trained native mode (here 3840x2400, 4 lanes
 		// HBR3) and the panel goes black; Apple's FB then keeps them for the online boot display.
 		// -ngreenkeepefi: keep what UEFI/GOP programmed when transcoder A is already running.
@@ -11847,6 +11851,8 @@ int Gen11::hwSetMode
 		   AppleIntel::AppleIntelDisplayPath *param_2,
 		   AppleIntel::CRTCParams *param_3)
 {
+	// This custom hook body is not registered in the current TGL route table:
+	// no route request assigns ohwSetMode. The active path uses Apple's original method.
 	// On RPL-P (spoofed TGL), setPortMode ran just before us and restored TRANS_DDI_FUNC_CTL_A
 	// to 0x8A000106 (4-lane eDP, matching UEFI DDI_BUF_CTL_A). paramsFbCompare inside the
 	// original hwSetMode reads TRANS_DDI_FUNC_CTL_A and compares it with the target 0x8A010102

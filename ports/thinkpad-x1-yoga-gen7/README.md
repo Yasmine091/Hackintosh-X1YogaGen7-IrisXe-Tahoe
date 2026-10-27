@@ -23,7 +23,7 @@ Apple's Tahoe update page now also lists 26.7.2. Keep this port on the repositor
 - `install.sh` pins NootedGreen source commit `95f81898be65cb9f7b3d370ca78054be4cc8a62` and downloads Lilu 1.7.2 for the build.
 - The checked-in EFI reports runtime Lilu 1.7.3. The build/runtime version mismatch needs to be reconciled or explicitly justified before a reproducible Yoga build.
 - The NootedGreen, HookCase, and VoodooGPIO build scripts clone MacKernelSDK at moving HEAD, so those builds are not fully reproducible. VoodooGPIO itself is checked out at `717ab2a`.
-- `make-efi.sh` pins OpenCore 1.0.8 for its macserial download, but that does not by itself establish the version of the tracked OpenCore EFI binaries. The exact OpenCore version still needs verification.
+- `make-efi.sh` pins OpenCore 1.0.8 only for its `macserial` download. The tracked X64 `OpenCore.efi`, `OpenRuntime.efi`, and `BOOTx64.efi` hashes all differ from the official 1.0.8 release, so their exact version remains unknown. Use one explicitly pinned OpenCore release and its matching validator for the Yoga EFI; do not mix tracked binaries with an assumed 1.0.8 schema.
 - The main PC is Ubuntu 26.04.1. It has Python, Clang, iasl and zsh, but no Apple `codesign`, `sw_vers`, `diskutil`, `ioreg`, or `ocvalidate`. The repository's macOS kext/Metal build scripts require Apple's SDK/frameworks and tools; they have not been run here. Static source, plist, JSON and ACPI work can continue on this PC.
 
 ## Port design

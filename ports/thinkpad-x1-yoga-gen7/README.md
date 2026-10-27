@@ -47,15 +47,15 @@ No configuration is generated yet. The existing `config-install.plist` is still 
 
 `tools/collect-linux-inventory.py` reads selected `/proc`, `/sys`, and i915 debugfs entries and prints a report to stdout by default. It includes available `i915_display_info`, `i915_sseu_status`, DMC and eDP power-save diagnostics, plus VBT size/signature/hash. It omits storage devices and partition tables, DMI serials/UUIDs, MAC addresses, and USB serial fields. It does not invoke sudo, install packages, mount filesystems, or change settings. From Kubuntu on the Yoga, start with `python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`; if i915 debugfs entries say unreadable, rerun as `sudo python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`. It also checks that DMI says Lenovo. The default prints to the terminal and writes nothing. The optional `--output PATH` is not needed for sharing; if used, choose a removable-USB path. This tool has not been run on the main PC.
 
-### Next target-side capture: physical USB ports
+### USB connector capture: initial Linux evidence recorded
 
-The inventory report lists devices attached during one Linux boot, but it does not map each external connector. Do not reuse the XPS USB map. On the Yoga, unplug the test device and run this from the repository root:
+The inventory report lists devices attached during one Linux boot, but it does not map each external connector. The captures below record the initial path evidence; rerun the helper if checking USB-C plug orientation or collecting more connector evidence. Do not reuse the XPS USB map. On the Yoga, run this from the repository root:
 
 ```sh
 python3 ports/thinkpad-x1-yoga-gen7/tools/collect-usb-port-map.py --confirm-x1-yoga-gen7
 ```
 
-Insert one known USB device into one connector at a time and enter its physical label when prompted; repeat for every USB-A/USB-C connector and, if available, a USB 2 and USB 3 device. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. Share the `MAP` lines. The first capture mapped all four external connectors on bus 3/controller `0000:00:14.0`, but every test negotiated only 480 Mbit/s, so SuperSpeed companion paths remain unknown. Repeat with a known USB 3 device. This is raw Linux port-path evidence, not yet an OpenCore USB map; Thunderbolt PCIe topology needs a separate check.
+The user ran the helper with a Western Digital USB device (`1058:25A2`). A 5000 Mbit/s path was observed on both USB-A and both USB-C connectors; earlier captures also observed a 480 Mbit/s path on each connector. Both USB-C ports are user-confirmed to charge the laptop. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. The observations are raw Linux paths, not an OpenCore USB map; USB-C orientation and Thunderbolt/USB4 PCIe topology still need separate checks. Detailed paths are in `EVIDENCE-ANALYSIS.md` and `profile.json`.
 
 ### Prepared firmware evidence exporter
 

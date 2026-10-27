@@ -172,7 +172,7 @@
       }
     ],
     "usbPortMapCaptured": false,
-    "usbPortMapStatus": "partial-usb2-paths-observed",
+    "usbPortMapStatus": "usb2-and-5gbps-paths-observed",
     "usbTopologyEvidence": {
       "source": "User-run read-only USB port watcher on the Yoga under Kubuntu",
       "hostControllerPciAddress": "0000:00:14.0",
@@ -217,9 +217,52 @@
           "observedSpeedMbps": 12
         }
       ],
+      "superSpeedCapture": {
+        "testDevice": {
+          "description": "Western Digital storage device",
+          "usbId": "1058:25A2"
+        },
+        "externalConnectorProbes": [
+          {
+            "label": "USB-A-LEFT",
+            "linuxBus": "4",
+            "linuxDevicePath": "4-1",
+            "pciChain": "0000:00:14.0",
+            "observedSpeedMbps": 5000
+          },
+          {
+            "label": "USB-A-RIGHT",
+            "linuxBus": "4",
+            "linuxDevicePath": "4-2",
+            "pciChain": "0000:00:14.0",
+            "observedSpeedMbps": 5000
+          },
+          {
+            "label": "USB-C-LEFT-BOTTOM",
+            "linuxBus": "2",
+            "linuxDevicePath": "2-1",
+            "pciChain": "0000:00:0d.0",
+            "observedSpeedMbps": 5000
+          },
+          {
+            "label": "USB-C-LEFT-TOP-CHARGING",
+            "linuxBus": "2",
+            "linuxDevicePath": "2-3",
+            "pciChain": "0000:00:0d.0",
+            "observedSpeedMbps": 5000
+          }
+        ],
+        "userConfirmedBothUsbCPortsCharge": true,
+        "limits": [
+          "5000 Mbps is the negotiated speed of this device and cable, not the maximum capability of either USB-C port.",
+          "USB-C plug orientation was not recorded.",
+          "The USB path capture does not establish Thunderbolt/USB4 PCIe topology or an OpenCore USB map."
+        ]
+      },
       "limits": [
-        "The external probes negotiated 480 Mbps; no SuperSpeed-capable test has been captured, so maximum connector speeds and companion paths are unknown.",
+        "USB 2 paths were observed at 480 Mbps and the Western Digital device negotiated 5000 Mbps on all four external connectors; these are observed paths, not maximum port ratings.",
         "Linux device paths are evidence for building a map, not an OpenCore USB map.",
+        "USB-C orientation-dependent paths have not been ruled out.",
         "Thunderbolt/USB4 PCIe topology was not captured."
       ]
     },

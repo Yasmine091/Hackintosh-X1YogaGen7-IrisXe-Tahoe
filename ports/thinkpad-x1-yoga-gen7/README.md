@@ -1,6 +1,6 @@
 # ThinkPad X1 Yoga Gen 7 port scaffold
 
-**Status: the USB boots OpenCore and starts the Tahoe Recovery kernel on the Yoga, but Recovery currently stalls before its interface appears.** The Recovery EFI is schema-validated; it is not yet a working installer. Development happens on the separate main PC. Raw Yoga ACPI/VBT evidence and generated SMBIOS values stay private and out of Git. Current boot findings are in [RECOVERY-EFI.md](RECOVERY-EFI.md).
+**Status: Recovery reached its interface on the Yoga; the user reports that the TrackPoint and AX211 Wi-Fi work. A later installer boot restarted before Setup Assistant, and the saved OpenCore log does not contain the post-handoff panic/restart cause.** The Recovery EFI is not yet a proven completed installation. Development happens on the separate main PC. Raw Yoga ACPI/VBT evidence and generated SMBIOS values stay private and out of Git. Current boot findings are in [RECOVERY-EFI.md](RECOVERY-EFI.md).
 
 ## Repository audit
 
@@ -18,6 +18,10 @@ The checked-in scripts and patch notes require **Tahoe 26.7.1, build 25G241**, a
 
 Apple's Tahoe update page now also lists 26.7.2. Keep this port on the repository's 25G241 baseline until the build-specific patches are independently revalidated; do not silently move to the newest Tahoe. Apple says full-installer downloads depend on the downloader Mac's compatibility and currently available versions, so availability of 26.7.1 must be checked on a compatible Mac with Apple's installer list before relying on it. See [Apple Tahoe updates](https://support.apple.com/en-us/122868) and [Apple's installer instructions](https://support.apple.com/en-us/102662).
 
+### Current graphics route
+
+For this exact `8086:46A8` GPU, the port now vendors the official WhateverXe 0.6.1 plugin and matching AMFIPass Mod for a **separate post-install experiment**. WhateverXe's Alder Lake mobile internal-eDP implementation is still experimental and untested on this panel. Keep the existing WhateverGreen/`-igfxvesa` Recovery profile for installation; do not combine the two plugins. Requirements, artifact hashes, build gating, and the separate plist are documented in [WHATEVERXE-EXPERIMENT.md](WHATEVERXE-EXPERIMENT.md).
+
 ### Dependency and build audit
 
 - `install.sh` pins NootedGreen source commit `95f81898be65cb9f7b3d370ca78054be4cc8a62` and downloads Lilu 1.7.2 for the build.
@@ -30,18 +34,18 @@ Apple's Tahoe update page now also lists 26.7.2. Keep this port on the repositor
 
 Keep two configurations separate and machine-specific:
 
-1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; a minimal platform support candidate. The AX211 is a Wi-Fi-only Recovery candidate, but its Tahoe driver path is experimental and untested on this Yoga; see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
+1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; a minimal platform support candidate. The user reports AX211 Wi-Fi working in Recovery; keep that kext for the current installer path and see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
 2. **Experimental acceleration:** add the 9A49 presentation only after confirming the Yoga's PCI path; add the active EU/subslice and L3 topology only after reading the target's Linux fuse/topology report; add a Yoga-derived panel and ACPI setup; keep each experimental driver change independently switchable.
 
-A Yoga Recovery config template and local builder are available in [RECOVERY-EFI.md](RECOVERY-EFI.md); see [KEXT-APPLICABILITY.md](KEXT-APPLICABILITY.md) for per-device coverage and omissions. The USB has booted OpenCore and reached the Recovery kernel but currently stalls there. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
+A Yoga Recovery config template and local builder are available in [RECOVERY-EFI.md](RECOVERY-EFI.md); see [KEXT-APPLICABILITY.md](KEXT-APPLICABILITY.md) for per-device coverage and omissions. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
 
 ## Evidence gates before an EFI
 
 1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, i915 display state, and SSEU topology. Target-side inventory is complete; the manifest and findings are summarized in EVIDENCE-ANALYSIS.md.
 2. The user has completed the firmware evidence export: 51 files are present and the manifest lists no missing captures. Raw files remain private and out of Git.
 3. Derive the I2C/GPIO interrupts and a USB map from the Yoga itself. Keep the reported storage, Kubuntu EFI/ext4 partitions, and swap outside this porting work.
-4. Build the Recovery candidate with the pinned OpenCore 1.0.8 helper; the config schema is validated, but hardware boot and Wi-Fi still need testing. See [RECOVERY-EFI.md](RECOVERY-EFI.md).
-5. Only then make an isolated acceleration config, keep the exact 25G241/16.0.32 build gates, and define a rollback path to the USB recovery config.
+4. Keep using the separate Recovery profile for installation; user reports confirm its TrackPoint and Wi-Fi are usable, while its installer restart cause remains unlogged. See [RECOVERY-EFI.md](RECOVERY-EFI.md).
+5. After installation, verify the exact macOS build, then test the separate WhateverXe profile and graphics package with a rollback path to Recovery.
 
 ## Prepared Linux inventory tool
 

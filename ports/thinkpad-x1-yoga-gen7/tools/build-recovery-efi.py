@@ -53,6 +53,14 @@ KEXTS = {
     "XHCI-unsupported.kext": {
         "Contents/Info.plist": "00fe5c096dbc349544260b205464c068b2a81ecf7541be4412ea7a752dd2cfd0",
     },
+    "WhateverXe.kext": {
+        "Contents/Info.plist": "3f8b06f4979a82b3ecf8faa4f6002333ed70cecbf87a897a495373f3cf6d3057",
+        "Contents/MacOS/WhateverXe": "e92b65b0cce5964aacb0e7674a762fb8bd85dee5a931d15bd80b0edcafd1c39b",
+    },
+    "AMFIPass.kext": {
+        "Contents/Info.plist": "eb3fda04c0e8c8ce0ef4cfc984dcfb771db6aee476d379bd4bc3b7a74a00e4e9",
+        "Contents/MacOS/AMFIPass": "2d36aeca1740b258e6bb0b66844b5bfb59a0edb7cdd9ef78206689e5d223d8dc",
+    },
 }
 
 EFI_FILES = {
@@ -201,8 +209,17 @@ def main() -> int:
 
         staged_kexts = staged / "EFI/OC/Kexts"
         kext_lines = []
+        required_kexts = set()
+        for item in config["Kernel"]["Add"]:
+            if not item["Enabled"]:
+                continue
+            bundle = item["BundlePath"].split(".kext", 1)[0] + ".kext"
+            required_kexts.add(Path(bundle).name)
         for name, expected_execs in KEXTS.items():
-            source = kext_source / name
+            if name not in required_kexts:
+                continue
+            source_root = port / "Kexts" if name in {"WhateverXe.kext", "AMFIPass.kext"} else kext_source
+            source = source_root / name
             if not source.is_dir():
                 raise SystemExit(f"Missing tracked kext: {source}")
             destination = staged_kexts / name
@@ -236,8 +253,13 @@ def main() -> int:
             raise SystemExit(check.stdout + check.stderr)
         print(check.stdout.strip())
 
+        profile_name = (
+            "WhateverXe experimental"
+            if "WhateverXe.kext" in required_kexts
+            else "Recovery"
+        )
         manifest = [
-            "Local staging only; not a boot-tested EFI and not installer media.",
+            f"Local staging only; not a boot-tested {profile_name} EFI and not installer media.",
             f"OpenCore: {OC_VERSION}; archive SHA-256: {actual_hash}",
             f"SMBIOS model: {MODEL}; a local serial/MLB/UUID/ROM set is in config.plist.",
             "Do not commit or publish this generated config. Apple service acceptance is not verified.",
@@ -250,7 +272,7 @@ def main() -> int:
         (staged / "STAGING-README.txt").write_text("\n".join(manifest) + "\n", encoding="utf-8")
         os.replace(staged, output)
 
-    print(f"Staged and validated Recovery EFI at: {output}")
+    print(f"Staged and validated {profile_name} EFI at: {output}")
     print("SMBIOS values were not printed. Keep this generated config private and reuse it for future builds.")
     return 0
 

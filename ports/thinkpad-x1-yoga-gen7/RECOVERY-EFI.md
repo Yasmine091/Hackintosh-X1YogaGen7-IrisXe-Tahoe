@@ -35,7 +35,14 @@ Apple Account sign-in is not needed to complete macOS installation or reach the 
 
 This is the minimal Recovery set, not the full laptop kext set. It leaves out NootedGreen and all GPU spoof/framebuffer properties; the XPS ACPI tables and USB map; I2C/GPIO/touchscreen/touchpad support; Bluetooth; audio; battery, sensors, and NVMe power-management extras. Touch input, audio, Bluetooth, USB port persistence, and GPU acceleration are not provided by this Recovery config.
 
-The i7-1265U CPUID emulation bytes are copied as a **candidate** from the repository install config because a same-CPU community report used them. `ProvideCurrentCpuInfo` is enabled for the hybrid CPU. BIOS CFG-lock state and Yoga boot behavior remain unverified; no CPU power limits are copied.
+The CPU settings are deliberately kept separate from Dell power tuning:
+
+- `ProvideCurrentCpuInfo` is enabled for Alder Lake's P/E hybrid topology.
+- The CPUID emulation is a candidate copied from the repository install config and a community report for the same i7-1265U. Its base mapping presents Alder Lake CPUID `0x090672` as Comet Lake `0x0A0655`. The additional `EBX[23:16]=0x80` override came from a repository-specific fix for an i7-1360P; its use on the 1265U has a same-CPU report as precedent but remains unverified on this Yoga.
+- The Yoga's Linux MSR read was `MSR 0xE2 = 0x74008008`; bit 15 is set, so CFG Lock is enabled. Both Yoga profiles therefore set `Kernel -> Quirks -> AppleXcpmCfgLock = true`. This matches [OpenCore's CFG-lock guidance](https://dortania.github.io/OpenCore-Post-Install/misc/msr-lock.html). Recheck if firmware settings change.
+- No `cpus=1`, CPU topology rebuild kext, or XPS PL1/PL2/power profile is included in the install config. Those are separate experiments, not prerequisites for this first boot.
+
+CPU settings above are candidates, not proof of stable CPU power management on the Yoga.
 
 ## Rebuild on the main PC
 

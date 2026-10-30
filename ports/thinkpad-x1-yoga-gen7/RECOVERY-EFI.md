@@ -79,11 +79,24 @@ python3 ports/thinkpad-x1-yoga-gen7/tools/build-recovery-efi.py \
   --output /tmp/x1-yoga-recovery-efi
 ```
 
-The script downloads or accepts the official OpenCore 1.0.8 archive, checks its pinned SHA-256, copies only the required EFI binaries and pinned kext executables, generates private SMBIOS values, and runs `ocvalidate` from that same release. It refuses to overwrite an existing output. To retain an earlier identity when making another output, add:
+By default, the script uses the pinned OpenCore 1.0.8 RELEASE archive. For a separate diagnostic build, add `--debug`; this selects the separately pinned official DEBUG archive and sets `DisplayLevel` to `0x80000042` (ERROR, WARN, and INFO). The tracked Recovery template uses `Target=67` for file logging. OpenCore's own documentation says RELEASE builds omit DEBUG_INFO, so `Target=67` by itself does not provide the detailed trace needed here. A DEBUG build can be slower and should be used for a diagnostic boot, not as an assumption that the installer failure is fixed.
+
+The script checks the selected archive's SHA-256, copies only the required EFI binaries and pinned kext executables, generates private SMBIOS values, and runs `ocvalidate` from that same archive. It refuses to overwrite an existing output. To retain an earlier identity when making another output, add:
 
 ```sh
 --reuse-config /path/to/the/previous/EFI/OC/config.plist
 ```
+
+For example, with this USB mounted on the main PC, create a local diagnostic EFI that keeps the existing USB identity:
+
+```sh
+python3 ports/thinkpad-x1-yoga-gen7/tools/build-recovery-efi.py \
+  --output /tmp/x1-yoga-recovery-debug \
+  --debug \
+  --reuse-config /run/media/leisure/62AD-65F9/EFI/OC/config.plist
+```
+
+This only creates `/tmp/x1-yoga-recovery-debug`; it does not update the USB. Keep the current USB EFI as the rollback copy when deciding whether to stage the diagnostic build.
 
 The builder output contains an `EFI/` folder only. It includes OpenRuntime and OpenHfsPlus; OpenHfsPlus is needed by many Recovery images. The builder does not contain Apple's `BaseSystem.dmg`/chunklist, format or write a USB, or touch any laptop disk or firmware setting. The current USB was prepared separately and contains Recovery plus private evidence and MSI.ROM.
 

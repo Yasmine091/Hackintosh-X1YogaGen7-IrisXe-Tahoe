@@ -3,6 +3,7 @@
 
 This does not create installer media or write to a USB/disk. The private
 SMBIOS identity is generated into the staged config and is never printed.
+Use --debug for a separate diagnostic EFI with OpenCore DEBUG binaries.
 """
 
 from __future__ import annotations
@@ -23,11 +24,16 @@ from pathlib import Path
 
 
 OC_VERSION = "1.0.8"
-OC_URL = (
+OC_RELEASE_URL = (
     "https://github.com/acidanthera/OpenCorePkg/releases/download/1.0.8/"
     "OpenCore-1.0.8-RELEASE.zip"
 )
-OC_SHA256 = "2011e8b7216ecb2645d97ea710df965947edd406846e92050b9bc4190be6d27b"
+OC_RELEASE_SHA256 = "2011e8b7216ecb2645d97ea710df965947edd406846e92050b9bc4190be6d27b"
+OC_DEBUG_URL = (
+    "https://github.com/acidanthera/OpenCorePkg/releases/download/1.0.8/"
+    "OpenCore-1.0.8-DEBUG.zip"
+)
+OC_DEBUG_SHA256 = "3f5f42b85703cf2c08e8dcd9245a52fb4326c9f4ef335c75b49f516cbbe131c6"
 MODEL = "MacBookPro16,2"
 
 KEXTS = {
@@ -162,7 +168,16 @@ def validate_payload(config: dict, staged: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path, help="new local staging directory")
-    parser.add_argument("--opencore-zip", type=Path, help="official OpenCore 1.0.8 release archive")
+    parser.add_argument(
+        "--opencore-zip",
+        type=Path,
+        help="official OpenCore 1.0.8 archive matching the selected build type",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="stage the pinned OpenCore DEBUG build with DEBUG_INFO logging",
+    )
     parser.add_argument("--repo-root", type=Path, help="repository root (normally auto-detected)")
     parser.add_argument("--template", type=Path, help="recovery plist template (normally from the Yoga port)")
     parser.add_argument("--reuse-config", type=Path, help="reuse private SMBIOS values from a prior config")
@@ -186,15 +201,18 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="x1yoga-recovery-", dir=output.parent) as tmp_name:
         tmp = Path(tmp_name)
+        build_type = "DEBUG" if args.debug else "RELEASE"
+        archive_url = OC_DEBUG_URL if args.debug else OC_RELEASE_URL
+        expected_hash = OC_DEBUG_SHA256 if args.debug else OC_RELEASE_SHA256
         archive_path = args.opencore_zip.expanduser().resolve() if args.opencore_zip else tmp / "OpenCore.zip"
         if not args.opencore_zip:
-            request = urllib.request.Request(OC_URL, headers={"User-Agent": "x1-yoga-recovery-stager"})
+            request = urllib.request.Request(archive_url, headers={"User-Agent": "x1-yoga-recovery-stager"})
             with urllib.request.urlopen(request, timeout=60) as response, archive_path.open("wb") as out:
                 shutil.copyfileobj(response, out)
         actual_hash = sha256(archive_path)
-        if actual_hash != OC_SHA256:
+        if actual_hash != expected_hash:
             raise SystemExit(
-                f"OpenCore archive SHA-256 mismatch ({actual_hash}); expected the pinned {OC_VERSION} release"
+                f"OpenCore archive SHA-256 mismatch ({actual_hash}); expected the pinned {OC_VERSION} {build_type} archive"
             )
 
         staged = tmp / "stage"
@@ -214,6 +232,10 @@ def main() -> int:
 
         identity = read_identity(args.reuse_config) if args.reuse_config else generate_identity(macserial)
         config = plistlib.loads(template.read_bytes())
+        if args.debug:
+            # Match OpenCore's documented DEBUG diagnostic mask: ERROR, WARN,
+            # and INFO. Keep Target=67 from the template for file logging.
+            config["Misc"]["Debug"]["DisplayLevel"] = 0x80000042
         generic = config["PlatformInfo"]["Generic"]
         generic.update(identity)
         config_path = staged / "EFI/OC/config.plist"
@@ -287,7 +309,7 @@ def main() -> int:
         )
         manifest = [
             f"Local staging only; not a boot-tested {profile_name} EFI and not installer media.",
-            f"OpenCore: {OC_VERSION}; archive SHA-256: {actual_hash}",
+            f"OpenCore: {OC_VERSION} {build_type}; archive SHA-256: {actual_hash}",
             f"SMBIOS model: {MODEL}; a local serial/MLB/UUID/ROM set is in config.plist.",
             "Do not commit or publish this generated config. Apple service acceptance is not verified.",
             "Kext payload SHA-256 values:",

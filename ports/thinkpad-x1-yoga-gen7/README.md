@@ -6,7 +6,7 @@
 
 The Yoga port branch was started from revision 99631db20ad841bb5d5f3934e4ffa4dc09f92dee and is developed as yoga-gen7, tracking the user's origin/dev. The upstream Dell configuration remains unchanged. The maintained EFI and all confirmed results in this repository target a Dell XPS 13 Plus 9320 with a Raptor Lake i7-1360P.
 
-The XPS EFI is not a Yoga template. It uses SMBIOS `MacBookPro16,2`, GPU spoofing and framebuffer properties, an XPS USB map, XPS I2C ACPI, and Dell-specific power/sensor configuration. In particular, `acpi/SSDT-XPS-I2C.dsl` hard-codes I2C0/TPL0 as touchscreen and I2C1/TPD0 as trackpad; target-side evidence confirms I2C0.TPD0 for the SYNA8016 touchpad and I2C1.TPL1 for the WACF2200 pen/touch device. The exact GPIO resources and Yoga USB map still need analysis before a complete acceleration EFI is assembled.
+The XPS EFI is not a Yoga template. It uses SMBIOS `MacBookPro16,2`, GPU spoofing and framebuffer properties, an XPS USB map, XPS I2C ACPI, and Dell-specific power/sensor configuration. In particular, `acpi/SSDT-XPS-I2C.dsl` hard-codes Dell I2C/GPIO paths that do not match the Yoga's I2C0.TPD0 touchpad and I2C1.TPL1 Wacom device. A Yoga `UTBMap` has now been derived from the captured Linux paths for PCH XHCI `8086:51ED` and Thunderbolt XHCI `8086:461E`; its macOS runtime behavior and Yoga I2C/GPIO resources remain unvalidated.
 
 ### Closest graphics evidence
 
@@ -34,7 +34,7 @@ For this exact `8086:46A8` GPU, the port now vendors the official WhateverXe 0.6
 
 Keep two configurations separate and machine-specific:
 
-1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; no XPS ACPI tables or USB map; a minimal platform support candidate. The user reports AX211 Wi-Fi working in Recovery; keep that kext for the current installer path and see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
+1. **Recovery/installer:** no NootedGreen or GPU spoof/framebuffer injection; uses Yoga-derived CPU/RTC ACPI tables and the Yoga USB map, with a targeted delete for the failing Lenovo `ProjSsdt`; no XPS ACPI tables or USB map. The user reports AX211 Wi-Fi working in Recovery; keep that kext for the current installer path and see [WIFI-RECOVERY.md](WIFI-RECOVERY.md).
 2. **Experimental acceleration:** add the 9A49 presentation only after confirming the Yoga's PCI path; add the active EU/subslice and L3 topology only after reading the target's Linux fuse/topology report; add a Yoga-derived panel and ACPI setup; keep each experimental driver change independently switchable.
 
 A Yoga Recovery config template and local builder are available in [RECOVERY-EFI.md](RECOVERY-EFI.md); see [KEXT-APPLICABILITY.md](KEXT-APPLICABILITY.md) for per-device coverage and omissions. The existing root `config-install.plist` is still XPS-only and must not be used for the Yoga.
@@ -43,7 +43,7 @@ A Yoga Recovery config template and local builder are available in [RECOVERY-EFI
 
 1. On the Yoga in Kubuntu, reconcile reported hardware against machine-type/BIOS, PCI, USB, I2C/HID, audio, eDP/EDID, i915 display state, and SSEU topology. Target-side inventory is complete; the manifest and findings are summarized in EVIDENCE-ANALYSIS.md.
 2. The user has completed the firmware evidence export: 51 files are present and the manifest lists no missing captures. Raw files remain private and out of Git.
-3. Derive the I2C/GPIO interrupts and a USB map from the Yoga itself. Keep the reported storage, Kubuntu EFI/ext4 partitions, and swap outside this porting work.
+3. The Yoga USB map has been derived from its connector captures; validate it in macOS. Derive I2C/GPIO interrupts separately. Keep the reported storage, Kubuntu EFI/ext4 partitions, and swap outside this porting work.
 4. Keep using the separate Recovery profile for installation; user reports confirm its TrackPoint and Wi-Fi are usable, while its installer restart cause remains unlogged. See [RECOVERY-EFI.md](RECOVERY-EFI.md).
 5. After installation, verify the exact macOS build, then test the separate WhateverXe profile and graphics package with a rollback path to Recovery.
 
@@ -51,7 +51,7 @@ A Yoga Recovery config template and local builder are available in [RECOVERY-EFI
 
 `tools/collect-linux-inventory.py` reads selected `/proc`, `/sys`, and i915 debugfs entries and prints a report to stdout by default. It includes available `i915_display_info`, `i915_sseu_status`, DMC and eDP power-save diagnostics, plus VBT size/signature/hash. It omits storage devices and partition tables, DMI serials/UUIDs, MAC addresses, and USB serial fields. It does not invoke sudo, install packages, mount filesystems, or change settings. From Kubuntu on the Yoga, start with `python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`; if i915 debugfs entries say unreadable, rerun as `sudo python3 tools/collect-linux-inventory.py --confirm-x1-yoga-gen7`. It also checks that DMI says Lenovo. The default prints to the terminal and writes nothing. The optional `--output PATH` is not needed for sharing; if used, choose a removable-USB path. This tool has not been run on the main PC.
 
-### USB connector capture: initial Linux evidence recorded
+### USB connector capture and map
 
 The inventory report lists devices attached during one Linux boot, but it does not map each external connector. The captures below record the initial path evidence; rerun the helper if checking USB-C plug orientation or collecting more connector evidence. Do not reuse the XPS USB map. On the Yoga, run this from the repository root:
 
@@ -59,7 +59,7 @@ The inventory report lists devices attached during one Linux boot, but it does n
 python3 ports/thinkpad-x1-yoga-gen7/tools/collect-usb-port-map.py --confirm-x1-yoga-gen7
 ```
 
-The user ran the helper with a Western Digital USB device (`1058:25A2`). A 5000 Mbit/s path was observed on both USB-A and both USB-C connectors; earlier captures also observed a 480 Mbit/s path on each connector. The WD device used the same observed path in both plug orientations on each USB-C port. Both USB-C ports are user-confirmed to charge the laptop. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. The observations are raw Linux paths, not an OpenCore USB map; Thunderbolt/USB4 PCIe topology still needs separate inspection. Detailed paths are in `EVIDENCE-ANALYSIS.md` and `profile.json`.
+The user ran the helper with a Western Digital USB device (`1058:25A2`). A 5000 Mbit/s path was observed on both USB-A and both USB-C connectors; earlier captures also observed a 480 Mbit/s path on each connector. The WD device used the same observed path in both plug orientations on each USB-C port. Both USB-C ports are user-confirmed to charge the laptop. Those paths were converted into the codeless `Kexts/UTBMap.kext` for PCH XHCI `8086:51ED` and Thunderbolt XHCI `8086:461E`, and the Recovery templates include it with USBToolBox. This is a captured-path map, not a macOS-validated map; the XHCI panic report predates it. The helper reads sysfs only, omits serial numbers, requires no `sudo`, and writes no files. The captures do not establish Thunderbolt/USB4 PCIe tunneling topology. Detailed paths and map ports are in `EVIDENCE-ANALYSIS.md` and the kext Info.plist.
 
 ### Prepared firmware evidence exporter
 

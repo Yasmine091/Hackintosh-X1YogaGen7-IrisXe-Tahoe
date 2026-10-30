@@ -43,7 +43,7 @@ The DSDT/SSDT disassembly identifies these target paths and firmware HID mapping
 
 The devices use PNP0C50. The firmware's _INI and _CRS methods populate HID and GPIO/interrupt resources dynamically, so the exact runtime interrupt mapping still needs careful review. SSDT10 exposes display children DD1F/DD2F and brightness methods; those methods do not prove macOS brightness control.
 
-## USB paths (Linux observations; OpenCore map pending)
+## USB paths and captured OpenCore map
 
 Two user-run captures on the Yoga observed a 480 Mbit/s path and a 5000 Mbit/s path on each physical connector. The 5000 Mbit/s probe used a Western Digital storage device (`1058:25A2`); this proves the negotiated rate for that device/cable, not the maximum port rate.
 
@@ -54,14 +54,20 @@ Two user-run captures on the Yoga observed a 480 Mbit/s path and a 5000 Mbit/s p
 | USB-C-LEFT-BOTTOM | bus 3, `3-1`, PCI `0000:00:14.0` | bus 2, `2-1`, PCI `0000:00:0d.0` |
 | USB-C-LEFT-TOP-CHARGING | bus 3, `3-3`, PCI `0000:00:14.0` | bus 2, `2-3`, PCI `0000:00:0d.0` |
 
-The user separately confirms both USB-C ports charge the laptop. A follow-up test with the same Western Digital device found the same 5 Gbit/s route in both plug orientations: top port `2-3`, bottom port `2-1`, both through PCI `0000:00:0d.0`. This orientation result is specific to the tested device, cable, and link. The built-in Bluetooth, fingerprint reader, and Intel USB Bridge appeared at `3-10`, `3-6`, and `3-8` respectively, each at 12 Mbit/s. These Linux paths are evidence for a later map, not an OpenCore USB map. The appearance of USB-C traffic through PCI `0000:00:0d.0` does not establish Thunderbolt/USB4 PCIe topology; that remains uncaptured.
+The user separately confirms both USB-C ports charge the laptop. A follow-up test with the same Western Digital device found the same 5 Gbit/s route in both plug orientations: top port `2-3`, bottom port `2-1`, both through PCI `0000:00:0d.0`. This orientation result is specific to the tested device, cable, and link. The built-in Bluetooth, fingerprint reader, and Intel USB Bridge appeared at `3-10`, `3-6`, and `3-8` respectively, each at 12 Mbit/s. These observed paths have been converted into `Kexts/UTBMap.kext`, with entries for PCH XHCI `8086:51ED` (USB-A, USB-C USB2, fingerprint reader, Intel bridge, and Bluetooth) and Thunderbolt XHCI `8086:461E` (the two USB-C SuperSpeed paths). This map is based on Linux enumeration and has not been validated by macOS. USB-C traffic through PCI `0000:00:0d.0` does not establish Thunderbolt/USB4 PCIe tunneling topology; that remains uncaptured.
+
+## Captured kernel panic: XHCI ACPI-port lookup
+
+The USB contained four `panic-*.txt` files, but they are byte-for-byte copies of one panic report (same SHA-256), not four distinct failures. The report shows a null page fault (`CR2=0`) in `AppleUSBXHCIPCI::getAcpiPort`, called from `AppleUSBXHCIPCI::createPort` and `AppleUSBXHCI::createPorts`. It is direct evidence of an early Apple XHCI/ACPI port-creation crash; it does not identify which of the two XHCI controllers caused it and does not implicate CPU topology. Its recorded boot arguments include the old `debug=0x14e` and `cpus=1` values, so it does not describe the current USB config, whose boot arguments omit both. The latest OpenCore trace on the USB is from Oct 29 at 21:38 and ends at `EXITBS:START`, the handoff to macOS; there is no later kernel panic report to establish whether the current XHCI A/B changed the crash.
+
+The current Recovery config has `ApplePanic=True`, `USBToolBox` and the mapped Yoga `UTBMap` enabled, and `XHCI-unsupported` disabled. The [USBToolBox documentation](https://github.com/USBToolBox/kext#configuration) describes `-utbacpioff` as disabling its removal of RHUB from the ACPI plane. A separate recovery template, `config-recovery-utbacpioff-template.plist`, adds only this boot argument. It keeps the captured port map and all kext settings unchanged, to test whether retaining the ACPI RHUB avoids the null ACPI-port lookup. The resulting local EFI passed OpenCore 1.0.8 `ocvalidate`; this is static validation only, and the USB has not been modified or boot-tested with this argument.
 
 ## Safe next work
 
 1. Determine how Linux selected the active panel despite the VBT's EDID-based primary type and missing AUO PnP match; capture the live firmware panel type if it can be obtained safely. Keep the VBT binary private.
 2. Raw register values remain optional follow-up evidence: `intel_reg` is absent on the Yoga, while the already-captured i915 report establishes the active Linux lane count. Do not install a tool just for this. If a reviewed read-only capture method becomes available later, collect `TRANS_DDI_FUNC_CTL_A` (`0x60400`), `DDI_BUF_CTL_A` (`0x64000`), `TRANS_DDI_FUNC_CTL_EDP` (`0x6f400`), and `PIPE_CONF_A` (`0x70008`). Keep the generic path out of any Yoga EFI until a Yoga-specific, reversible path is justified. `-ngreenkeepefi` skips only the Transcoder A timing/PPS block in the `ngreen-dmc=adlp` branch when pipe A is active; it does not suppress that branch's other writes or establish what Apple's later TGL modesetting will do.
 3. Resolve the available-versus-enabled topology reporting and identify what the Tiger Lake driver expects before changing EU/L3 overrides.
-4. Finish Yoga I2C/GPIO resource analysis; derive the OpenCore USB map from the captured paths and inspect Thunderbolt separately.
+4. Validate the captured USB map in macOS; finish Yoga I2C/GPIO resource analysis and inspect Thunderbolt separately.
 5. Only then generate separate recovery and acceleration configurations. No installer, EFI generation, or internal-disk operation is part of this evidence-analysis step.
 
 For item 2, if `intel_reg` is already installed on Kubuntu, the narrow capture command is `sudo intel_reg read 0x60400 0x64000 0x6f400 0x70008`. This uses the tool's `read` operation only; do not substitute `write` or a broad `dump`. The tool documentation notes that some register reads can hang a GPU or machine, so do not install anything or proceed if the tool reports an unsupported device or register. See the [intel_reg manual](https://manpages.debian.org/trixie/intel-gpu-tools/intel_reg.1.en.html).

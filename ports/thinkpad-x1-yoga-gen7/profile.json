@@ -291,12 +291,13 @@
         "limits": [
           "5000 Mbps is the negotiated speed of this device and cable, not the maximum capability of either USB-C port.",
           "The USB-C orientation result is limited to this device, cable, and observed 5000 Mbps path.",
-          "The USB path capture does not establish Thunderbolt/USB4 PCIe topology or an OpenCore USB map."
+          "These observed Linux connector paths have been converted into the repository's UTBMap.kext; macOS enumeration is untested.",
+          "The USB path capture does not establish Thunderbolt/USB4 PCIe tunneling topology."
         ]
       },
       "limits": [
         "USB 2 paths were observed at 480 Mbps and the Western Digital device negotiated 5000 Mbps on all four external connectors; these are observed paths, not maximum port ratings.",
-        "Linux device paths are evidence for building a map, not an OpenCore USB map.",
+        "Linux paths informed the checked-in UTBMap; macOS USB behavior remains untested.",
         "The WD drive used the same observed 5 Gbps path in both USB-C plug orientations.",
         "Thunderbolt/USB4 PCIe topology was not captured."
       ]
@@ -363,7 +364,7 @@
     "Active/fused GPU topology and L3 bank count; available topology and the all-zero enabled-status snapshot are distinct observations",
     "Decoded active Yoga VBT panel/link/backlight configuration",
     "Yoga I2C GPIO interrupt routing and macOS-compatible ACPI resources",
-    "Complete USB map including SuperSpeed companion paths, and Thunderbolt topology",
+    "macOS validation of the captured USB map and Thunderbolt/USB4 PCIe tunneling topology",
     "Successful macOS boot on this Yoga",
     "Metal acceleration or stability on this Yoga",
     "Suitable Xcode version and Simulator compatibility"

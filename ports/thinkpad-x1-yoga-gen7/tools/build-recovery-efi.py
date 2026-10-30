@@ -53,6 +53,12 @@ KEXTS = {
     "XHCI-unsupported.kext": {
         "Contents/Info.plist": "00fe5c096dbc349544260b205464c068b2a81ecf7541be4412ea7a752dd2cfd0",
     },
+    "USBToolBox.kext": {
+        "USBToolBox": "c5c8dc205a079ee3f90b7875fb5ff622e4f15d32f29cf519123dab2822c422b7",
+    },
+    "UTBMap.kext": {
+        "Contents/Info.plist": "0ea75ff52b973326f2b8cc94a9dafbaf58e3ab5e96ea66b0f42a5c2000aaeaef",
+    },
     "WhateverXe.kext": {
         "Contents/Info.plist": "3f8b06f4979a82b3ecf8faa4f6002333ed70cecbf87a897a495373f3cf6d3057",
         "Contents/MacOS/WhateverXe": "e92b65b0cce5964aacb0e7674a762fb8bd85dee5a931d15bd80b0edcafd1c39b",
@@ -61,6 +67,12 @@ KEXTS = {
         "Contents/Info.plist": "eb3fda04c0e8c8ce0ef4cfc984dcfb771db6aee476d379bd4bc3b7a74a00e4e9",
         "Contents/MacOS/AMFIPass": "2d36aeca1740b258e6bb0b66844b5bfb59a0edb7cdd9ef78206689e5d223d8dc",
     },
+}
+
+ACPI_TABLES = {
+    "SSDT-CPU-STA.aml": "ed4a1a63cbbbc963bb6c84fad8bca43f0924f9584d4b3805dae662a6b4317d68",
+    "SSDT-PLUG-ALT.aml": "64331ae5c240031fd00f73ab31e1116cd4f6128c0fb6eb5788e801b1f23a2b18",
+    "SSDT-RTCAWAC.aml": "665933431fb49e3bf9097207f4ebf9da213cd60f36bc6e5d04d61edb30f87d89",
 }
 
 EFI_FILES = {
@@ -143,7 +155,7 @@ def validate_payload(config: dict, staged: Path) -> None:
         if item["Enabled"] and not (oc / "Drivers" / item["Path"]).is_file():
             raise RuntimeError(f"Missing enabled UEFI driver: {item['Path']}")
     for item in config["ACPI"]["Add"]:
-        if item["Enabled"] and not (oc / item["Path"]).is_file():
+        if item["Enabled"] and not (oc / "ACPI" / item["Path"]).is_file():
             raise RuntimeError(f"Missing enabled ACPI table: {item['Path']}")
 
 
@@ -188,6 +200,7 @@ def main() -> int:
         staged = tmp / "stage"
         (staged / "EFI/BOOT").mkdir(parents=True)
         (staged / "EFI/OC/Drivers").mkdir(parents=True)
+        (staged / "EFI/OC/ACPI").mkdir(parents=True)
         (staged / "EFI/OC/Kexts").mkdir(parents=True)
         with zipfile.ZipFile(archive_path) as archive:
             for source, relative in EFI_FILES.items():
@@ -211,17 +224,20 @@ def main() -> int:
         kext_lines = []
         required_kexts = set()
         for item in config["Kernel"]["Add"]:
-            if not item["Enabled"]:
+            # Keep the pinned XHCI injector in the staged EFI as a reversible
+            # fallback even while its config entry is disabled for the native
+            # Apple-driver A/B. Other disabled kexts remain omitted.
+            if not item["Enabled"] and item["BundlePath"] != "XHCI-unsupported.kext":
                 continue
             bundle = item["BundlePath"].split(".kext", 1)[0] + ".kext"
             required_kexts.add(Path(bundle).name)
         for name, expected_execs in KEXTS.items():
             if name not in required_kexts:
                 continue
-            source_root = port / "Kexts" if name in {"WhateverXe.kext", "AMFIPass.kext"} else kext_source
-            source = source_root / name
-            if not source.is_dir():
-                raise SystemExit(f"Missing tracked kext: {source}")
+            candidates = (port / "Kexts" / name, kext_source / name)
+            source = next((candidate for candidate in candidates if candidate.is_dir()), None)
+            if source is None:
+                raise SystemExit(f"Missing tracked kext: {name}")
             destination = staged_kexts / name
             shutil.copytree(source, destination)
             for relative, expected in expected_execs.items():
@@ -247,6 +263,17 @@ def main() -> int:
                     raise SystemExit(f"Unexpected {name} payload for {info.get('CFBundleVersion')}: {actual}")
                 kext_lines.append(f"{name} {info.get('CFBundleVersion')} {actual}")
 
+        acpi_lines = []
+        for name, expected in ACPI_TABLES.items():
+            source = port / "ACPI" / name
+            if not source.is_file():
+                raise SystemExit(f"Missing Yoga ACPI table: {source}")
+            actual = sha256(source)
+            if actual != expected:
+                raise SystemExit(f"Unexpected Yoga ACPI table payload {name}: {actual}")
+            shutil.copy2(source, staged / "EFI/OC/ACPI" / name)
+            acpi_lines.append(f"{name} {actual}")
+
         validate_payload(config, staged)
         check = subprocess.run([str(ocvalidate), str(config_path)], capture_output=True, text=True)
         if check.returncode != 0:
@@ -265,8 +292,11 @@ def main() -> int:
             "Do not commit or publish this generated config. Apple service acceptance is not verified.",
             "Kext payload SHA-256 values:",
             *kext_lines,
+            "Yoga ACPI table SHA-256 values:",
+            *acpi_lines,
             f"config.plist SHA-256: {sha256(config_path)}",
-            "No BaseSystem image, ACPI tables, USB map, GPU spoof, NootedGreen, Bluetooth, audio, or I2C kexts included.",
+            "No BaseSystem image, GPU spoof, NootedGreen, Bluetooth, audio, or I2C kexts included.",
+            "The captured Yoga USB map and three target-derived ACPI tables are included; macOS runtime behavior is not proven by staging.",
             "This helper did not touch a USB, internal drive, partition table, or firmware settings.",
         ]
         (staged / "STAGING-README.txt").write_text("\n".join(manifest) + "\n", encoding="utf-8")

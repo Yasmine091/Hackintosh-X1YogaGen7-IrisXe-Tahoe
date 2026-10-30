@@ -22,7 +22,7 @@ If an XHCI `getAcpiPort` panic recurs under this current config, the tracked `co
 
 ## Next evidence to collect (read-only)
 
-The existing OpenCore traces end at the handoff to the macOS kernel and do not contain the installer log or restart cause. In Recovery, open **Utilities → Terminal** and capture the installer/APFS state:
+The existing OpenCore traces end at the handoff to the macOS kernel and do not contain the installer log or restart cause. The new [`collect-installer-state.sh`](tools/collect-installer-state.sh) automates the read-only capture: stage a copy at the root of the external installer USB before booting, then in Recovery open **Utilities → Terminal** and run `sh "/Volumes/<USB name>/collect-installer-state.sh"` (use `ls /Volumes` to find the USB's actual name). It refuses to write unless macOS identifies the script's volume as external, and saves a timestamped report beside itself on that USB. It gathers `diskutil list`, APFS volumes, Recovery/build information, likely installer logs and installer metadata; it does not read NVRAM or hardware serials. After running it, bring the USB back to the main PC and share the `yoga-installer-state-*.txt` report. If the script is not staged, the manual read-only commands below are the fallback. Before running the installer again, capture this report from Recovery:
 
 ```sh
 sw_vers -productVersion
